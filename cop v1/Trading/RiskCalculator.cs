@@ -127,8 +127,9 @@ namespace COP_v1.Trading
 
         /// <summary>
         /// Нормализовать объём: округлить к шагу, ограничить min/max.
+        /// Публичный для расчёта объёма по каждому тейку при нескольких TP.
         /// </summary>
-        private double NormalizeVolume(double volumeInUnits)
+        public double NormalizeVolume(double volumeInUnits)
         {
             double step = _bot.Symbol.VolumeInUnitsStep;
             double minVol = _bot.Symbol.VolumeInUnitsMin;

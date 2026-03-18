@@ -112,8 +112,8 @@ namespace COP_v1
 
         protected override void OnTick()
         {
-            // Обновить спред на панели
-            if (_mainPanel != null && _mainPanel.IsSpreadVisible)
+            // Обновить спред на панели (всегда отображается)
+            if (_mainPanel != null)
             {
                 double spreadPips = Symbol.Spread / Symbol.PipSize;
                 _mainPanel.UpdateSpread(spreadPips);
@@ -261,9 +261,69 @@ namespace COP_v1
                 Localization.Get("StopText", slPercent.ToString("F2")));
 
             _chartLineManager.UpdateLineTextPosition(
-                ChartLineManager.TpTextId,
+                _chartLineManager.MainTpTextId,
                 tpPrice,
                 Localization.Get("TpText", rr.ToString("F1")));
+        }
+
+        /// <summary>
+        /// Получить массив цен TP по текущему TpCount (1, 2 или 3).
+        /// </summary>
+        private double[] GetTpPricesArray()
+        {
+            int n = _mainPanel.TpCount;
+            if (n == 1)
+                return new[] { _chartLineManager.TakeProfitPrice1 };
+            if (n == 2)
+                return new[] { _chartLineManager.TakeProfitPrice1, _chartLineManager.TakeProfitPrice2 };
+            return new[] { _chartLineManager.TakeProfitPrice1, _chartLineManager.TakeProfitPrice2, _chartLineManager.TakeProfitPrice3 };
+        }
+
+        /// <summary>
+        /// Поделить общий объём на N тейков (равный объём или равный профит).
+        /// Если объём на часть меньше минимального — возвращает один элемент (весь объём на последний TP).
+        /// </summary>
+        private double[] SplitVolumesForTps(double totalVolumeUnits, double entryPrice, double[] tpPrices, bool isLong)
+        {
+            if (tpPrices == null || tpPrices.Length == 0)
+                return new[] { totalVolumeUnits };
+
+            int n = tpPrices.Length;
+            double minVol = Symbol.VolumeInUnitsMin;
+
+            if (totalVolumeUnits / n < minVol)
+            {
+                // Не хватает объёма на N ордеров — один ордер с последним TP
+                return new[] { _riskCalculator.NormalizeVolume(totalVolumeUnits) };
+            }
+
+            double[] volumes = new double[n];
+
+            if (_mainPanel.TpVolumeMode == TpVolumeMode.EqualVolume)
+            {
+                double raw = totalVolumeUnits / n;
+                for (int i = 0; i < n; i++)
+                    volumes[i] = _riskCalculator.NormalizeVolume(raw);
+            }
+            else
+            {
+                // Равный профит: v_i ~ 1/|tp_i - entry|
+                double[] dist = new double[n];
+                double sumInv = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    dist[i] = Math.Abs(tpPrices[i] - entryPrice);
+                    if (dist[i] < Symbol.PipSize * 0.1) dist[i] = Symbol.PipSize * 0.1;
+                    sumInv += 1.0 / dist[i];
+                }
+                for (int i = 0; i < n; i++)
+                {
+                    double raw = totalVolumeUnits * (1.0 / dist[i]) / sumInv;
+                    volumes[i] = _riskCalculator.NormalizeVolume(raw);
+                }
+            }
+
+            return volumes;
         }
 
         /// <summary>
@@ -326,7 +386,7 @@ namespace COP_v1
                 if (_mainPanel.IsFastOrder)
                 {
                     // Fast Order: линии привязываются к курсору
-                    _fastOrderHandler.StartLimit();
+                    _fastOrderHandler.StartLimit(_mainPanel.TpCount);
                     // Кнопка подтверждения серая (ордер автоматически)
                     _mainPanel.UpdateSubmitButton(0, true, Symbol.Name, "0.00");
                     Print("Fast Limit mode activated — click to place Entry");
@@ -334,7 +394,7 @@ namespace COP_v1
                 else
                 {
                     // Обычный режим: линии перетаскиваемые
-                    _chartLineManager.ShowLimitLines();
+                    _chartLineManager.ShowLimitLines(_mainPanel.TpCount);
                     RecalculateAll();
                     Print("Limit mode activated — 3 lines shown");
                 }
@@ -365,7 +425,7 @@ namespace COP_v1
                 if (_mainPanel.IsFastOrder)
                 {
                     // Fast Order Market: SL и TP по кликам
-                    _fastOrderHandler.StartMarket();
+                    _fastOrderHandler.StartMarket(_mainPanel.TpCount);
                     _mainPanel.UpdateMarketPrice(Symbol.Bid, Symbol.Ask, Symbol.Digits);
                     _mainPanel.UpdateSubmitButton(0, false, Symbol.Name, "0.00");
                     Print("Fast Market mode activated — click to place SL");
@@ -373,7 +433,7 @@ namespace COP_v1
                 else
                 {
                     // Обычный режим
-                    _chartLineManager.ShowMarketLines();
+                    _chartLineManager.ShowMarketLines(_mainPanel.TpCount);
                     _mainPanel.UpdateMarketPrice(Symbol.Bid, Symbol.Ask, Symbol.Digits);
                     RecalculateAll();
                     Print("Market mode activated — 2 lines shown");
@@ -403,36 +463,44 @@ namespace COP_v1
             }
 
             double slPrice = _chartLineManager.StopLossPrice;
-            double tpPrice = _chartLineManager.TakeProfitPrice;
-            TradeResult result;
+            double entryPrice = _isLimitMode == true
+                ? _chartLineManager.EntryPrice
+                : ( _lastDirection == OrderDirection.Long ? Symbol.Ask : Symbol.Bid );
 
-            if (_isLimitMode == true)
+            double[] tpPrices = GetTpPricesArray();
+            bool isLong = _lastDirection == OrderDirection.Long;
+            double[] volumes = SplitVolumesForTps(_lastVolumeUnits, entryPrice, tpPrices, isLong);
+
+            // Размещаем столько ордеров, сколько объёмов (1, 2 или 3)
+            int placed = 0;
+            for (int i = 0; i < volumes.Length; i++)
             {
-                // Limit-ордер
-                double entryPrice = _chartLineManager.EntryPrice;
-                result = _orderManager.PlaceLimitOrder(entryPrice, slPrice, tpPrice, _lastVolumeUnits);
+                if (volumes[i] <= 0) continue;
+                // При одном ордере (fallback) — используем последний TP
+                double tpPrice = (volumes.Length == 1) ? tpPrices[tpPrices.Length - 1] : (i < tpPrices.Length ? tpPrices[i] : tpPrices[tpPrices.Length - 1]);
+                TradeResult result;
+
+                if (_isLimitMode == true)
+                    result = _orderManager.PlaceLimitOrder(entryPrice, slPrice, tpPrice, volumes[i]);
+                else
+                    result = _orderManager.PlaceMarketOrder(slPrice, tpPrice, volumes[i]);
+
+                if (result.IsSuccessful)
+                    placed++;
+                else
+                    Print("Order {0} FAILED: {1}", i + 1, result.Error);
+            }
+
+            if (placed > 0)
+            {
+                Print("Placed {0} order(s): {1} {2} total vol={3}",
+                    placed, _isLimitMode == true ? "LIMIT" : "MARKET", Symbol.Name, _lastVolumeLots.ToString("F2"));
             }
             else
             {
-                // Market-ордер
-                result = _orderManager.PlaceMarketOrder(slPrice, tpPrice, _lastVolumeUnits);
+                Print("All orders FAILED");
             }
 
-            // Проверка результата
-            if (result.IsSuccessful)
-            {
-                Print("Order placed successfully: {0} {1} {2} vol={3}",
-                    _isLimitMode == true ? "LIMIT" : "MARKET",
-                    _lastDirection,
-                    Symbol.Name,
-                    _lastVolumeLots.ToString("F2"));
-            }
-            else
-            {
-                Print("Order FAILED: {0}", result.Error);
-            }
-
-            // В любом случае — убрать линии, свернуть панель, вернуть в IDLE
             _chartLineManager.RemoveAllLines();
             _mainPanel.ResetToIdle();
             _mainPanel.Collapse();
@@ -547,9 +615,9 @@ namespace COP_v1
             double price;
             if (TryParseFieldPrice(text, out price))
             {
-                _chartLineManager.MoveLineTo(ChartLineManager.TpLineId, price);
+                _chartLineManager.MoveLineTo(_chartLineManager.MainTpLineId, price);
                 _chartLineManager.UpdateLineTextPosition(
-                    ChartLineManager.TpTextId,
+                    _chartLineManager.MainTpTextId,
                     price,
                     Localization.Get("TpText", "0.0"));
                 RecalculateAll();
@@ -593,16 +661,18 @@ namespace COP_v1
         /// Вызывается FastOrderHandler когда все уровни зафиксированы кликами.
         /// Размещает ордер, убирает линии, сворачивает панель.
         /// </summary>
-        private void HandleFastOrderReady(double entryPrice, double slPrice, double tpPrice, bool isMarket)
+        private void HandleFastOrderReady(double entryPrice, double slPrice, double[] tpPrices, bool isMarket)
         {
-            // Валидация
-            OrderDirection direction = LevelValidator.Validate(entryPrice, slPrice, tpPrice);
+            if (tpPrices == null || tpPrices.Length == 0)
+                return;
+
+            OrderDirection direction = LevelValidator.Validate(entryPrice, slPrice, tpPrices[0]);
             if (direction == OrderDirection.Invalid)
             {
                 Print("Fast Order: invalid levels — entry={0} sl={1} tp={2}",
                     entryPrice.ToString("F" + Symbol.Digits),
                     slPrice.ToString("F" + Symbol.Digits),
-                    tpPrice.ToString("F" + Symbol.Digits));
+                    tpPrices[0].ToString("F" + Symbol.Digits));
                 _chartLineManager.RemoveAllLines();
                 _mainPanel.ResetToIdle();
                 _isLimitMode = null;
@@ -610,36 +680,42 @@ namespace COP_v1
                 return;
             }
 
-            // Рассчитать объём
-            double riskPercent = ParseRisk(_mainPanel.RiskText);
-            double volumeUnits = _riskCalculator.CalculateVolume(entryPrice, slPrice, riskPercent);
-            double volumeLots = _riskCalculator.ToLots(volumeUnits);
-
-            // Разместить ордер
-            TradeResult result;
             if (isMarket)
+                entryPrice = direction == OrderDirection.Long ? Symbol.Ask : Symbol.Bid;
+
+            double riskPercent = ParseRisk(_mainPanel.RiskText);
+            double totalVolumeUnits = _riskCalculator.CalculateVolume(entryPrice, slPrice, riskPercent);
+            bool isLong = direction == OrderDirection.Long;
+            double[] volumes = SplitVolumesForTps(totalVolumeUnits, entryPrice, tpPrices, isLong);
+
+            int placed = 0;
+            for (int i = 0; i < volumes.Length; i++)
             {
-                result = _orderManager.PlaceMarketOrder(slPrice, tpPrice, volumeUnits);
+                if (volumes[i] <= 0) continue;
+                double tpPrice = (volumes.Length == 1) ? tpPrices[tpPrices.Length - 1] : (i < tpPrices.Length ? tpPrices[i] : tpPrices[tpPrices.Length - 1]);
+
+                TradeResult result;
+                if (isMarket)
+                    result = _orderManager.PlaceMarketOrder(slPrice, tpPrice, volumes[i]);
+                else
+                    result = _orderManager.PlaceLimitOrder(entryPrice, slPrice, tpPrice, volumes[i]);
+
+                if (result.IsSuccessful)
+                    placed++;
+                else
+                    Print("Fast Order {0} FAILED: {1}", i + 1, result.Error);
+            }
+
+            if (placed > 0)
+            {
+                Print("Fast Order: placed {0} order(s) {1} {2}",
+                    placed, isMarket ? "MARKET" : "LIMIT", Symbol.Name);
             }
             else
             {
-                result = _orderManager.PlaceLimitOrder(entryPrice, slPrice, tpPrice, volumeUnits);
+                Print("Fast Order: all orders FAILED");
             }
 
-            if (result.IsSuccessful)
-            {
-                Print("Fast Order placed: {0} {1} {2} vol={3}",
-                    isMarket ? "MARKET" : "LIMIT",
-                    direction,
-                    Symbol.Name,
-                    volumeLots.ToString("F2"));
-            }
-            else
-            {
-                Print("Fast Order FAILED: {0}", result.Error);
-            }
-
-            // Убрать линии, свернуть панель, вернуть в IDLE
             _chartLineManager.RemoveAllLines();
             _mainPanel.ResetToIdle();
             _mainPanel.Collapse();

@@ -129,6 +129,55 @@ namespace COP_v1.UI
             {
                 [Language.EN] = "MARKET {0} lot",
                 [Language.RU] = "MARKET {0} лот"
+            },
+
+            // --- Панель настроек ---
+            ["Settings"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Settings",
+                [Language.RU] = "Настройки"
+            },
+            ["SettingsPlaceholder"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Other settings will be here",
+                [Language.RU] = "Здесь будут другие настройки"
+            },
+
+            // --- Multi-TP настройки ---
+            ["TpCountLabel"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Take profits",
+                [Language.RU] = "Тейков"
+            },
+            ["TpCount1"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "1",
+                [Language.RU] = "1"
+            },
+            ["TpCount2"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "2",
+                [Language.RU] = "2"
+            },
+            ["TpCount3"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "3",
+                [Language.RU] = "3"
+            },
+            ["TpVolumeModeLabel"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Volume mode",
+                [Language.RU] = "Режим объёма"
+            },
+            ["TpVolumeEqualVolume"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Equal volume",
+                [Language.RU] = "Равный объём"
+            },
+            ["TpVolumeEqualProfit"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Equal profit",
+                [Language.RU] = "Равный профит"
             }
         };
 

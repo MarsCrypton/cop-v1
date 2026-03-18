@@ -4,6 +4,13 @@ using cAlgo.API;
 
 namespace COP_v1.UI
 {
+    /// <summary>Режим распределения объёма между тейками: равный объём или равный профит.</summary>
+    public enum TpVolumeMode
+    {
+        EqualVolume,
+        EqualProfit
+    }
+
     /// <summary>
     /// Главная UI-панель бота COP v1.
     /// Содержит все контролы: чекбоксы, кнопки режимов, поля ввода, кнопку подтверждения.
@@ -13,29 +20,38 @@ namespace COP_v1.UI
     {
         private readonly Robot _bot;
 
-        // === Корневой контейнер ===
+        // === Корневой контейнер (на график вешаем Border: внутри StackPanel = основная панель + панель настроек) ===
+        private readonly Border _rootWrapper;
+        private readonly StackPanel _rootContainer;
         private readonly Border _rootBorder;
         private readonly StackPanel _mainStack;
 
         // === Заголовок ===
         private readonly TextBlock _titleText;
+        private readonly Button _settingsButton;
         private readonly Button _toggleButton;
+
+        // === Панель настроек ===
+        private readonly Border _settingsPanelBorder;
+        private bool _settingsPanelVisible;
+        private readonly ComboBox _tpCountCombo;
+        private readonly ComboBox _tpVolumeModeCombo;
 
         // === Контент (скрывается при сворачивании) ===
         private readonly StackPanel _contentStack;
 
         // === Чекбоксы ===
         private readonly CheckBox _fastOrderCheckBox;
-        private readonly CheckBox _spreadCheckBox;
         private readonly TextBlock _spreadValueText;
 
         // === Кнопки режимов ===
         private readonly Button _limitButton;
         private readonly Button _marketButton;
 
-        // === Блок риска ===
+        // === Блок риска + отображение настроек TP ===
         private readonly TextBlock _riskLabel;
         private readonly TextBox _riskTextBox;
+        private readonly TextBlock _tpSettingsDisplayText;
 
         // === Блок цены входа ===
         private readonly TextBlock _priceLabel;
@@ -97,9 +113,6 @@ namespace COP_v1.UI
         /// <summary>Вызывается при переключении чекбокса Fast Order. Аргумент: новое состояние.</summary>
         public event Action<bool> OnFastOrderToggled;
 
-        /// <summary>Вызывается при переключении чекбокса Spread. Аргумент: новое состояние.</summary>
-        public event Action<bool> OnSpreadToggled;
-
         /// <summary>
         /// Создать панель COP v1.
         /// </summary>
@@ -118,9 +131,22 @@ namespace COP_v1.UI
                 Margin = new Thickness(4, 2, 0, 2)
             };
 
+            _settingsButton = new Button
+            {
+                Text = "...",
+                FontSize = 12,
+                FontWeight = FontWeight.Bold,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 2, 0, 2),
+                Width = 28,
+                Height = 22,
+                Style = PanelStyles.CreateToggleButtonStyle()
+            };
+            _settingsButton.Click += SettingsButton_Click;
+
             _toggleButton = new Button
             {
-                Text = "▲",
+                Text = "+",
                 FontSize = 12,
                 FontWeight = FontWeight.Bold,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -139,7 +165,8 @@ namespace COP_v1.UI
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
             headerStack.AddChild(_titleText);
-            headerStack.AddChild(CreateHSpacer());
+            headerStack.AddChild(_settingsButton);
+            headerStack.AddChild(CreateHeaderSpacer()); // узкий спейсер, чтобы влезли обе кнопки (... и +/−)
             headerStack.AddChild(_toggleButton);
 
             // ===== Чекбоксы =====
@@ -159,14 +186,6 @@ namespace COP_v1.UI
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 10, 0)
             };
-
-            _spreadCheckBox = new CheckBox
-            {
-                IsChecked = true,
-                ForegroundColor = PanelStyles.TextColor,
-                Margin = new Thickness(4, 4, 4, 4)
-            };
-            _spreadCheckBox.Click += SpreadCheckBox_Click;
 
             var spreadLabel = new TextBlock
             {
@@ -192,7 +211,6 @@ namespace COP_v1.UI
             };
             checkboxRow.AddChild(_fastOrderCheckBox);
             checkboxRow.AddChild(fastOrderLabel);
-            checkboxRow.AddChild(_spreadCheckBox);
             checkboxRow.AddChild(spreadLabel);
             checkboxRow.AddChild(_spreadValueText);
 
@@ -229,18 +247,43 @@ namespace COP_v1.UI
             // ===== Разделитель =====
             var sep1 = CreateSeparator();
 
-            // ===== Блок риска =====
+            // ===== Блок риска (половина ширины) + отображение настроек TP (половина) =====
+            double halfPanelWidth = (PanelStyles.PanelWidth - 16) / 2;
             _riskLabel = new TextBlock { Text = Localization.Get("MaxRisk") };
             PanelStyles.ApplyLabelStyle(_riskLabel);
 
             _riskTextBox = new TextBox
             {
                 Text = maxRiskPercent.ToString("F2"),
-                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = halfPanelWidth - 12,
                 Margin = new Thickness(4, 2, 4, 2)
             };
             PanelStyles.ApplyTextBoxStyle(_riskTextBox);
             _riskTextBox.TextChanged += RiskTextBox_TextChanged;
+
+            _tpSettingsDisplayText = new TextBlock
+            {
+                Text = "",
+                ForegroundColor = PanelStyles.TextMuted,
+                FontSize = PanelStyles.FontSizeSmall,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 2, 4, 2),
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            var riskColumn = new StackPanel { Orientation = Orientation.Vertical, Width = halfPanelWidth };
+            riskColumn.AddChild(_riskLabel);
+            riskColumn.AddChild(_riskTextBox);
+            var tpSettingsColumn = new StackPanel { Orientation = Orientation.Vertical, Width = halfPanelWidth };
+            tpSettingsColumn.AddChild(_tpSettingsDisplayText);
+            var riskRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(2, 2, 2, 2)
+            };
+            riskRow.AddChild(riskColumn);
+            riskRow.AddChild(tpSettingsColumn);
 
             // ===== Блок цены входа =====
             _priceLabel = new TextBlock { Text = Localization.Get("LimitOrder") };
@@ -332,8 +375,7 @@ namespace COP_v1.UI
             _contentStack.AddChild(checkboxRow);
             _contentStack.AddChild(modeRow);
             _contentStack.AddChild(sep1);
-            _contentStack.AddChild(_riskLabel);
-            _contentStack.AddChild(_riskTextBox);
+            _contentStack.AddChild(riskRow);
             _contentStack.AddChild(sep2);
             _contentStack.AddChild(_priceLabel);
             _contentStack.AddChild(_priceTextBox);
@@ -351,7 +393,7 @@ namespace COP_v1.UI
             _mainStack.AddChild(headerStack);
             _mainStack.AddChild(_contentStack);
 
-            // ===== Корневая рамка =====
+            // ===== Основная рамка (без выравнивания — оно будет у контейнера) =====
             _rootBorder = new Border
             {
                 Child = _mainStack,
@@ -359,7 +401,113 @@ namespace COP_v1.UI
                 BorderColor = PanelStyles.SeparatorColor,
                 BorderThickness = new Thickness(1),
                 CornerRadius = PanelStyles.CornerRadius,
+                Width = PanelStyles.PanelWidth
+            };
+
+            // ===== Панель настроек (такой же размер и стиль, пока placeholder) =====
+            var settingsTitle = new TextBlock
+            {
+                Text = Localization.Get("Settings"),
+                ForegroundColor = PanelStyles.TextColor,
+                FontSize = PanelStyles.FontSizeNormal,
+                FontWeight = FontWeight.Bold,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 6, 0, 6)
+            };
+            var settingsHeaderRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                BackgroundColor = PanelStyles.SeparatorColor,
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            settingsHeaderRow.AddChild(settingsTitle);
+
+            // --- Количество тейков (1, 2 или 3) ---
+            var tpCountLabel = new TextBlock
+            {
+                Text = Localization.Get("TpCountLabel"),
+                ForegroundColor = PanelStyles.TextColor,
+                FontSize = PanelStyles.FontSizeSmall,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 4, 8, 4)
+            };
+            _tpCountCombo = new ComboBox
+            {
+                Width = 60,
+                Height = 22,
+                Margin = new Thickness(4, 4, 4, 4)
+            };
+            _tpCountCombo.AddItem(Localization.Get("TpCount1"));
+            _tpCountCombo.AddItem(Localization.Get("TpCount2"));
+            _tpCountCombo.AddItem(Localization.Get("TpCount3"));
+            _tpCountCombo.SelectedItemChanged += (args) => UpdateTpSettingsDisplay();
+            // По умолчанию 1 тейк (индекс 0).
+            _tpCountCombo.SelectedIndex = 0;
+            var tpCountRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(2, 2, 2, 2)
+            };
+            tpCountRow.AddChild(tpCountLabel);
+            tpCountRow.AddChild(_tpCountCombo);
+
+            // --- Режим объёма (равный объём / равный профит) ---
+            var tpVolumeModeLabel = new TextBlock
+            {
+                Text = Localization.Get("TpVolumeModeLabel"),
+                ForegroundColor = PanelStyles.TextColor,
+                FontSize = PanelStyles.FontSizeSmall,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 4, 8, 4)
+            };
+            _tpVolumeModeCombo = new ComboBox
+            {
+                Width = 120,
+                Height = 22,
+                Margin = new Thickness(4, 4, 4, 4)
+            };
+            _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualVolume"));
+            _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualProfit"));
+            _tpVolumeModeCombo.SelectedIndex = 0; // равный объём по умолчанию
+            _tpVolumeModeCombo.SelectedItemChanged += (args) => UpdateTpSettingsDisplay();
+            var tpVolumeModeRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(2, 2, 2, 2)
+            };
+            tpVolumeModeRow.AddChild(tpVolumeModeLabel);
+            tpVolumeModeRow.AddChild(_tpVolumeModeCombo);
+
+            var settingsContent = new StackPanel { Orientation = Orientation.Vertical };
+            settingsContent.AddChild(settingsHeaderRow);
+            settingsContent.AddChild(CreateSeparator());
+            settingsContent.AddChild(tpCountRow);
+            settingsContent.AddChild(tpVolumeModeRow);
+
+            _settingsPanelBorder = new Border
+            {
+                Child = settingsContent,
+                BackgroundColor = PanelStyles.PanelBackground,
+                BorderColor = PanelStyles.SeparatorColor,
+                BorderThickness = new Thickness(1),
+                CornerRadius = PanelStyles.CornerRadius,
                 Width = PanelStyles.PanelWidth,
+                IsVisible = false
+            };
+            _settingsPanelVisible = false;
+
+            // ===== Корневой контейнер: основная панель + панель настроек =====
+            _rootContainer = new StackPanel
+            {
+                Orientation = Orientation.Vertical
+            };
+            _rootContainer.AddChild(_rootBorder);
+            _rootContainer.AddChild(_settingsPanelBorder);
+
+            // ===== Обёртка Border (cAlgo: Chart.AddControl принимает Control, StackPanel не наследует Control) =====
+            _rootWrapper = new Border
+            {
+                Child = _rootContainer,
                 VerticalAlignment = MapVertical(vPos),
                 HorizontalAlignment = MapHorizontal(hPos),
                 Margin = new Thickness(8)
@@ -370,28 +518,28 @@ namespace COP_v1.UI
             {
                 _isCollapsed = true;
                 _contentStack.IsVisible = false;
-                _toggleButton.Text = "▼";
+                _toggleButton.Text = "+";
             }
             else
             {
                 _isCollapsed = false;
                 _contentStack.IsVisible = true;
-                _toggleButton.Text = "▲";
+                _toggleButton.Text = "-";
             }
+
+            UpdateTpSettingsDisplay();
         }
 
         #region Public properties
 
         /// <summary>
         /// Корневой контрол для добавления на график через Chart.AddControl().
+        /// Содержит основную панель и (при открытии) панель настроек под ней.
         /// </summary>
-        public Border RootControl => _rootBorder;
+        public Border RootControl => _rootWrapper;
 
         /// <summary>Текущее состояние чекбокса Fast Order.</summary>
         public bool IsFastOrder => _fastOrderCheckBox.IsChecked == true;
-
-        /// <summary>Текущее состояние чекбокса Spread.</summary>
-        public bool IsSpreadVisible => _spreadCheckBox.IsChecked == true;
 
         /// <summary>Текущее значение риска из поля ввода (как строка).</summary>
         public string RiskText => _riskTextBox.Text;
@@ -411,19 +559,22 @@ namespace COP_v1.UI
         /// <summary>Кнопка Market активна (зелёная)?</summary>
         public bool IsMarketActive { get; private set; }
 
+        /// <summary>Количество тейк-профитов: 1, 2 или 3 (из панели настроек).</summary>
+        public int TpCount => _tpCountCombo.SelectedIndex == 0 ? 1 : (_tpCountCombo.SelectedIndex == 1 ? 2 : 3);
+
+        /// <summary>Режим распределения объёма между тейками (из панели настроек).</summary>
+        public TpVolumeMode TpVolumeMode => _tpVolumeModeCombo.SelectedIndex == 0 ? TpVolumeMode.EqualVolume : TpVolumeMode.EqualProfit;
+
         #endregion
 
         #region Public methods — обновление данных
 
         /// <summary>
-        /// Обновить отображение спреда.
+        /// Обновить отображение спреда (всегда отображается).
         /// </summary>
         public void UpdateSpread(double spreadPips)
         {
-            if (_spreadCheckBox.IsChecked == true)
-                _spreadValueText.Text = spreadPips.ToString("F1");
-            else
-                _spreadValueText.Text = "";
+            _spreadValueText.Text = spreadPips.ToString("F1");
         }
 
         /// <summary>
@@ -588,7 +739,7 @@ namespace COP_v1.UI
             _isCollapsed = true;
             s_savedCollapsedState = true;
             _contentStack.IsVisible = false;
-            _toggleButton.Text = "▼";
+            _toggleButton.Text = "+";
         }
 
         /// <summary>
@@ -599,7 +750,7 @@ namespace COP_v1.UI
             _isCollapsed = false;
             s_savedCollapsedState = false;
             _contentStack.IsVisible = true;
-            _toggleButton.Text = "▲";
+            _toggleButton.Text = "-";
         }
 
         #endregion
@@ -614,18 +765,24 @@ namespace COP_v1.UI
                 Collapse();
         }
 
+        private void SettingsButton_Click(ButtonClickEventArgs args)
+        {
+            _settingsPanelVisible = !_settingsPanelVisible;
+            _settingsPanelBorder.IsVisible = _settingsPanelVisible;
+        }
+
+        private void UpdateTpSettingsDisplay()
+        {
+            string modeText = TpVolumeMode == TpVolumeMode.EqualVolume
+                ? Localization.Get("TpVolumeEqualVolume")
+                : Localization.Get("TpVolumeEqualProfit");
+            _tpSettingsDisplayText.Text = string.Format("TP: {0}\n{1}", TpCount, modeText);
+        }
+
         private void FastOrderCheckBox_Click(CheckBoxEventArgs args)
         {
             bool isChecked = _fastOrderCheckBox.IsChecked == true;
             OnFastOrderToggled?.Invoke(isChecked);
-        }
-
-        private void SpreadCheckBox_Click(CheckBoxEventArgs args)
-        {
-            bool isChecked = _spreadCheckBox.IsChecked == true;
-            if (!isChecked)
-                _spreadValueText.Text = "";
-            OnSpreadToggled?.Invoke(isChecked);
         }
 
         private void LimitButton_Click(ButtonClickEventArgs args)
@@ -777,6 +934,16 @@ namespace COP_v1.UI
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Width = PanelStyles.PanelWidth - 80
+            };
+        }
+
+        /// <summary>Спейсер для заголовка: уже, чтобы влезли две кнопки (настройки + свёртывание).</summary>
+        private StackPanel CreateHeaderSpacer()
+        {
+            return new StackPanel
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = PanelStyles.PanelWidth - 120  // место под: заголовок ~50 + кнопка 28 + кнопка 28 + отступы
             };
         }
 

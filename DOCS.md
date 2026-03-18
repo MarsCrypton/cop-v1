@@ -218,7 +218,7 @@
 
 ## 7. MainPanel.cs — главная UI-панель
 
-Строит панель: заголовок с кнопкой свёртывания, чекбоксы (Fast order, Spread), кнопки Limit/Market, поля риска и цены, SL/TP с подсказками $ и %, кнопка подтверждения. Поддерживает сворачивание; состояние свёрнутости сохраняется в статической переменной между перезапусками.
+Строит панель: заголовок с кнопкой свёртывания, чекбокс Fast order и отображение спреда, кнопки Limit/Market, поля риска и цены, SL/TP с подсказками $ и %, кнопка подтверждения. Поддерживает сворачивание; состояние свёрнутости сохраняется в статической переменной между перезапусками.
 
 ### События
 
@@ -232,15 +232,13 @@
 | `OnSlChanged` | string — новое значение SL. |
 | `OnTpChanged` | string — новое значение TP. |
 | `OnFastOrderToggled` | bool — состояние чекбокса Fast order. |
-| `OnSpreadToggled` | bool — состояние чекбокса Spread. |
 
 ### Свойства
 
 | Свойство | Тип | Описание |
 |----------|-----|----------|
-| `RootControl` | `Border` | Корневой контрол для Chart.AddControl(). |
+| `RootControl` | `Border` | Корневой контрол для Chart.AddControl() (обёртка: основная панель + панель настроек под ней). |
 | `IsFastOrder` | `bool` | Чекбокс Fast order включён. |
-| `IsSpreadVisible` | `bool` | Чекбокс Spread включён. |
 | `RiskText` | `string` | Текст поля риска. |
 | `IsLimitActive` | `bool` | Кнопка Limit активна. |
 | `IsMarketActive` | `bool` | Кнопка Market активна. |
@@ -250,7 +248,7 @@
 | Метод | Описание |
 |-------|----------|
 | `MainPanel(Robot bot, VerticalPosition, HorizontalPosition, double maxRiskPercent, bool fastOrderMode)` | Строит всю панель; восстанавливает свёрнутость из s_savedCollapsedState. |
-| `UpdateSpread(double spreadPips)` | Обновляет текст спреда (если чекбокс включён). |
+| `UpdateSpread(double spreadPips)` | Обновляет текст спреда (спред всегда отображается). |
 | `UpdateEntryPrice(double price, int digits)` | Устанавливает цену входа в поле (без вызова OnPriceChanged). |
 | `UpdateMarketPrice(double bid, double ask, int digits)` | Устанавливает рыночную цену в поле. |
 | `UpdateStopLoss(double price, int digits, double lossDollars, double lossPercent)` | Обновляет поле SL и подпись $ (%). |

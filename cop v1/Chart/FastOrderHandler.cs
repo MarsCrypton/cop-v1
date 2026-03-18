@@ -20,9 +20,9 @@ namespace COP_v1.Chart
 
         /// <summary>
         /// Callback когда все уровни зафиксированы.
-        /// Аргументы: entryPrice, slPrice, tpPrice, isMarket.
+        /// Аргументы: entryPrice, slPrice, tpPrices (2 или 3 тейка), isMarket.
         /// </summary>
-        private readonly Action<double, double, double, bool> _onOrderReady;
+        private readonly Action<double, double, double[], bool> _onOrderReady;
 
         /// <summary>
         /// Callback для получения текущего % риска из панели.
@@ -30,14 +30,17 @@ namespace COP_v1.Chart
         private readonly Func<double> _getRiskPercent;
 
         // Состояние
-        // 0 = неактивен, 1 = выбор Entry, 2 = выбор SL, 3 = выбор TP
+        // 0 = неактивен, 1 = Entry, 2 = SL, 3 = TP1, 4 = TP2, 5 = TP3 (если _tpCount==3)
         private int _step = 0;
         private bool _isMarketMode;
+        private int _tpCount = 2;
 
         // Зафиксированные цены
         private double _entryPrice;
         private double _slPrice;
-        private double _tpPrice;
+        private double _tp1Price;
+        private double _tp2Price;
+        private double _tp3Price;
 
         // ID текущей линии, привязанной к курсору
         private string _currentLineId;
@@ -53,13 +56,13 @@ namespace COP_v1.Chart
         /// <param name="bot">Робот (для доступа к Chart, Symbol)</param>
         /// <param name="lineManager">Менеджер линий (для RemoveAllLines)</param>
         /// <param name="riskCalculator">Калькулятор риска (для динамических текстов)</param>
-        /// <param name="onOrderReady">Callback(entry, sl, tp, isMarket) — вызывается когда все уровни выбраны</param>
+        /// <param name="onOrderReady">Callback(entry, sl, tpPrices, isMarket) — вызывается когда все уровни выбраны</param>
         /// <param name="getRiskPercent">Функция для получения текущего % риска</param>
         public FastOrderHandler(
             Robot bot,
             ChartLineManager lineManager,
             RiskCalculator riskCalculator,
-            Action<double, double, double, bool> onOrderReady,
+            Action<double, double, double[], bool> onOrderReady,
             Func<double> getRiskPercent)
         {
             _bot = bot;
@@ -75,8 +78,10 @@ namespace COP_v1.Chart
         /// Начать Fast Order в режиме Limit.
         /// Шаг 1: к курсору привязывается синяя линия Entry.
         /// </summary>
-        public void StartLimit()
+        /// <param name="tpCount">Количество тейков: 2 или 3</param>
+        public void StartLimit(int tpCount)
         {
+            _tpCount = tpCount < 1 ? 1 : (tpCount > 3 ? 3 : tpCount);
             Cancel(); // на всякий случай очистить предыдущий
 
             _isMarketMode = false;
@@ -102,8 +107,10 @@ namespace COP_v1.Chart
         /// Entry = текущая цена (синяя линия, неперемещаемая, показывает лоты).
         /// Шаг 2: к курсору привязывается красная линия SL.
         /// </summary>
-        public void StartMarket()
+        /// <param name="tpCount">Количество тейков: 2 или 3</param>
+        public void StartMarket(int tpCount)
         {
+            _tpCount = tpCount < 1 ? 1 : (tpCount > 3 ? 3 : tpCount);
             Cancel();
 
             _isMarketMode = true;
@@ -215,40 +222,80 @@ namespace COP_v1.Chart
             }
             else if (_step == 2)
             {
-                // SL зафиксирован → начинаем TP
+                // SL зафиксирован → начинаем TP1
                 _slPrice = clickPrice;
                 _step = 3;
 
-                _currentLineId = ChartLineManager.TpLineId;
-                _currentTextId = ChartLineManager.TpTextId;
+                _currentLineId = ChartLineManager.Tp1LineId;
+                _currentTextId = ChartLineManager.Tp1TextId;
                 _currentColor = PanelStyles.LineTakeProfit;
 
                 DrawFastLine(_currentLineId, clickPrice, _currentColor);
                 DrawFastText(_currentTextId, clickPrice, _currentColor, Localization.Get("TpText", "0.0"));
 
-                _bot.Print("FastOrder: SL fixed at {0} — step 3 (TP)", _slPrice.ToString("F" + _bot.Symbol.Digits));
+                _bot.Print("FastOrder: SL fixed at {0} — step 3 (TP1)", _slPrice.ToString("F" + _bot.Symbol.Digits));
             }
             else if (_step == 3)
             {
-                // TP зафиксирован → готово, размещаем ордер!
-                _tpPrice = clickPrice;
+                // TP1 зафиксирован
+                _tp1Price = clickPrice;
 
-                _bot.Print("FastOrder: TP fixed at {0} — placing order!", _tpPrice.ToString("F" + _bot.Symbol.Digits));
+                if (_tpCount == 1)
+                {
+                    FinishFastOrder(new[] { _tp1Price });
+                    return;
+                }
 
-                // Отписаться от событий
-                _bot.Chart.MouseMove -= OnMouseMove;
-                _bot.Chart.MouseDown -= OnMouseDown;
+                _step = 4;
+                _currentLineId = ChartLineManager.Tp2LineId;
+                _currentTextId = ChartLineManager.Tp2TextId;
+                _currentColor = PanelStyles.LineTakeProfit;
 
-                // Для Market: обновить entry на актуальную цену
-                if (_isMarketMode)
-                    _entryPrice = _bot.Symbol.Bid;
+                DrawFastLine(_currentLineId, clickPrice, _currentColor);
+                DrawFastText(_currentTextId, clickPrice, _currentColor, Localization.Get("TpText", "0.0"));
 
-                int stepBackup = _step;
-                _step = 0;
-
-                // Вызвать callback — COP.cs разместит ордер
-                _onOrderReady?.Invoke(_entryPrice, _slPrice, _tpPrice, _isMarketMode);
+                _bot.Print("FastOrder: TP1 fixed at {0} — step 4 (TP2)", _tp1Price.ToString("F" + _bot.Symbol.Digits));
             }
+            else if (_step == 4)
+            {
+                // TP2 зафиксирован
+                _tp2Price = clickPrice;
+
+                if (_tpCount == 2)
+                {
+                    FinishFastOrder(new[] { _tp1Price, _tp2Price });
+                }
+                else
+                {
+                    _step = 5;
+                    _currentLineId = ChartLineManager.Tp3LineId;
+                    _currentTextId = ChartLineManager.Tp3TextId;
+                    _currentColor = PanelStyles.LineTakeProfit;
+                    DrawFastLine(_currentLineId, clickPrice, _currentColor);
+                    DrawFastText(_currentTextId, clickPrice, _currentColor, Localization.Get("TpText", "0.0"));
+                    _bot.Print("FastOrder: TP2 fixed at {0} — step 5 (TP3)", _tp2Price.ToString("F" + _bot.Symbol.Digits));
+                }
+            }
+            else if (_step == 5)
+            {
+                // TP3 зафиксирован → готово
+                _tp3Price = clickPrice;
+                FinishFastOrder(new[] { _tp1Price, _tp2Price, _tp3Price });
+            }
+        }
+
+        private void FinishFastOrder(double[] tpPrices)
+        {
+            _bot.Print("FastOrder: TP(s) fixed — placing order!");
+
+            _bot.Chart.MouseMove -= OnMouseMove;
+            _bot.Chart.MouseDown -= OnMouseDown;
+
+            if (_isMarketMode)
+                _entryPrice = _bot.Symbol.Bid;
+
+            _step = 0;
+            _onOrderReady?.Invoke(_entryPrice, _slPrice, tpPrices, _isMarketMode);
         }
 
         #endregion
@@ -302,9 +349,9 @@ namespace COP_v1.Chart
                         entryTextObj.Y = _entryPrice;
                 }
             }
-            else if (_step == 3)
+            else if (_step >= 3 && _step <= 5)
             {
-                // TP — показать RR
+                // TP1/TP2/TP3 — показать RR
                 double entry = _isMarketMode ? _bot.Symbol.Bid : _entryPrice;
                 double rr = _riskCalculator.CalculateRR(entry, _slPrice, cursorPrice);
                 text = Localization.Get("TpText", rr.ToString("F1"));
