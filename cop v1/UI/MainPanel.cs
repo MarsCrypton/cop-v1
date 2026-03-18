@@ -69,6 +69,14 @@ namespace COP_v1.UI
         // === Кнопка подтверждения ===
         private readonly Button _submitButton;
 
+        // === Мини-панель (видна только при свёрнутой панели) ===
+        private const int MiniButtonFontSize = 10;
+        private readonly StackPanel _miniPanelStack;
+        private readonly Button _miniLimitButton;
+        private readonly Button _miniMarketButton;
+        private readonly Button _miniSubmitButton;
+        private readonly Button _miniFoButton;
+
         // === Состояние ===
         /// <summary>По умолчанию панель свёрнута.</summary>
         private bool _isCollapsed = true;
@@ -384,6 +392,77 @@ namespace COP_v1.UI
             _contentStack.AddChild(CreateSeparator());
             _contentStack.AddChild(_submitButton);
 
+            // ===== Мини-панель (видна только при свёрнутой панели): LM, MK, OK, FST ====
+            // Небольшие отступы по краям; кнопки тоньше; шрифт мельче, чтобы влезал текст (в т.ч. FST)
+            const int miniPanelMarginH = 6;
+            const int miniPanelMarginV = 4;
+            double miniBtnWidth = (PanelStyles.PanelWidth - miniPanelMarginH * 2 - 20) / 4;
+            const int miniBtnHeight = 22;
+            _miniLimitButton = new Button
+            {
+                Text = "LM",
+                Width = miniBtnWidth,
+                Height = miniBtnHeight,
+                FontWeight = FontWeight.Bold,
+                Margin = new Thickness(2),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false);
+            _miniLimitButton.Click += (args) => ActivateLimit();
+
+            _miniMarketButton = new Button
+            {
+                Text = "MK",
+                Width = miniBtnWidth,
+                Height = miniBtnHeight,
+                FontWeight = FontWeight.Bold,
+                Margin = new Thickness(2),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false);
+            _miniMarketButton.Click += (args) => ActivateMarket();
+
+            _miniSubmitButton = new Button
+            {
+                Text = "OK",
+                Width = miniBtnWidth,
+                Height = miniBtnHeight,
+                FontWeight = FontWeight.Bold,
+                Margin = new Thickness(2),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            ApplyMiniSubmitButtonStyle(0);
+            _miniSubmitButton.Click += (args) => TrySubmitOrder();
+
+            _miniFoButton = new Button
+            {
+                Text = "FST",
+                Width = miniBtnWidth,
+                Height = miniBtnHeight,
+                FontWeight = FontWeight.Bold,
+                Margin = new Thickness(2),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, _fastOrderCheckBox.IsChecked == true);
+            _miniFoButton.Click += (args) => SetFastOrder(!IsFastOrder);
+
+            _miniLimitButton.FontSize = MiniButtonFontSize;
+            _miniMarketButton.FontSize = MiniButtonFontSize;
+            _miniSubmitButton.FontSize = MiniButtonFontSize;
+            _miniFoButton.FontSize = MiniButtonFontSize;
+
+            _miniPanelStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                BackgroundColor = PanelStyles.PanelBackground,
+                Margin = new Thickness(miniPanelMarginH, miniPanelMarginV, miniPanelMarginH, miniPanelMarginV),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            _miniPanelStack.AddChild(_miniLimitButton);
+            _miniPanelStack.AddChild(_miniMarketButton);
+            _miniPanelStack.AddChild(_miniSubmitButton);
+            _miniPanelStack.AddChild(_miniFoButton);
+
             // ===== Собираем всё в основной стек =====
             _mainStack = new StackPanel
             {
@@ -391,6 +470,7 @@ namespace COP_v1.UI
                 BackgroundColor = PanelStyles.PanelBackground
             };
             _mainStack.AddChild(headerStack);
+            _mainStack.AddChild(_miniPanelStack);
             _mainStack.AddChild(_contentStack);
 
             // ===== Основная рамка (без выравнивания — оно будет у контейнера) =====
@@ -518,12 +598,14 @@ namespace COP_v1.UI
             {
                 _isCollapsed = true;
                 _contentStack.IsVisible = false;
+                _miniPanelStack.IsVisible = true;
                 _toggleButton.Text = "+";
             }
             else
             {
                 _isCollapsed = false;
                 _contentStack.IsVisible = true;
+                _miniPanelStack.IsVisible = false;
                 _toggleButton.Text = "-";
             }
 
@@ -634,33 +716,41 @@ namespace COP_v1.UI
         {
             if (_fastOrderCheckBox.IsChecked == true)
             {
-                // Fast Order — кнопка всегда серая/неактивна
                 PanelStyles.ApplySubmitButtonStyle(_submitButton, 0);
                 _submitButton.Text = Localization.Get("PlaceOrder");
+                ApplyMiniSubmitButtonStyle(0);
+                _miniSubmitButton.IsEnabled = false;
+                _miniSubmitButton.Text = "OK";
                 return;
             }
 
             if (direction == 0)
             {
-                // Invalid — красная
                 PanelStyles.ApplySubmitButtonStyle(_submitButton, -1);
                 _submitButton.Text = Localization.Get("InvalidLevels");
+                ApplyMiniSubmitButtonStyle(-1);
+                _miniSubmitButton.IsEnabled = false;
+                _miniSubmitButton.Text = "OK";
             }
             else if (direction == 1)
             {
-                // Long — зелёная
                 PanelStyles.ApplySubmitButtonStyle(_submitButton, 1);
                 _submitButton.Text = isLimit
                     ? Localization.Get("LimitLong", symbolName, volumeLots)
                     : Localization.Get("BuyMarket", symbolName, volumeLots);
+                ApplyMiniSubmitButtonStyle(1);
+                _miniSubmitButton.IsEnabled = true;
+                _miniSubmitButton.Text = "OK";
             }
             else
             {
-                // Short — зелёная
                 PanelStyles.ApplySubmitButtonStyle(_submitButton, 1);
                 _submitButton.Text = isLimit
                     ? Localization.Get("LimitShort", symbolName, volumeLots)
                     : Localization.Get("SellMarket", symbolName, volumeLots);
+                ApplyMiniSubmitButtonStyle(1);
+                _miniSubmitButton.IsEnabled = true;
+                _miniSubmitButton.Text = "OK";
             }
         }
 
@@ -713,6 +803,16 @@ namespace COP_v1.UI
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
             PanelStyles.ApplySubmitButtonStyle(_submitButton, 0);
             _submitButton.Text = Localization.Get("PlaceOrder");
+            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false);
+            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false);
+            ApplyMiniSubmitButtonStyle(0);
+            _miniSubmitButton.Text = "OK";
+            _miniSubmitButton.IsEnabled = false;
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, IsFastOrder);
+            _miniLimitButton.FontSize = MiniButtonFontSize;
+            _miniMarketButton.FontSize = MiniButtonFontSize;
+            _miniSubmitButton.FontSize = MiniButtonFontSize;
+            _miniFoButton.FontSize = MiniButtonFontSize;
             _priceTextBox.Text = "";
             _slTextBox.Text = "";
             _tpTextBox.Text = "";
@@ -739,6 +839,7 @@ namespace COP_v1.UI
             _isCollapsed = true;
             s_savedCollapsedState = true;
             _contentStack.IsVisible = false;
+            _miniPanelStack.IsVisible = true;
             _toggleButton.Text = "+";
         }
 
@@ -750,6 +851,7 @@ namespace COP_v1.UI
             _isCollapsed = false;
             s_savedCollapsedState = false;
             _contentStack.IsVisible = true;
+            _miniPanelStack.IsVisible = false;
             _toggleButton.Text = "-";
         }
 
@@ -779,67 +881,99 @@ namespace COP_v1.UI
             _tpSettingsDisplayText.Text = string.Format("TP: {0}\n{1}", TpCount, modeText);
         }
 
-        private void FastOrderCheckBox_Click(CheckBoxEventArgs args)
-        {
-            bool isChecked = _fastOrderCheckBox.IsChecked == true;
-            OnFastOrderToggled?.Invoke(isChecked);
-        }
-
-        private void LimitButton_Click(ButtonClickEventArgs args)
+        private void ActivateLimit()
         {
             if (IsLimitActive)
             {
-                // Деактивируем Limit
                 IsLimitActive = false;
                 PanelStyles.ApplyModeButtonStyle(_limitButton, false);
+                PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false);
+                _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
                 OnLimitClicked?.Invoke(false);
             }
             else
             {
-                // Деактивируем Market (если был), активируем Limit
                 if (IsMarketActive)
                 {
                     IsMarketActive = false;
                     PanelStyles.ApplyModeButtonStyle(_marketButton, false);
+                    PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false);
                     OnMarketClicked?.Invoke(false);
                 }
-
                 IsLimitActive = true;
                 PanelStyles.ApplyModeButtonStyle(_limitButton, true);
+                PanelStyles.ApplyModeButtonStyle(_miniLimitButton, true);
+                _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
                 OnLimitClicked?.Invoke(true);
             }
         }
 
-        private void MarketButton_Click(ButtonClickEventArgs args)
+        private void ActivateMarket()
         {
             if (IsMarketActive)
             {
-                // Деактивируем Market
                 IsMarketActive = false;
                 PanelStyles.ApplyModeButtonStyle(_marketButton, false);
+                PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false);
+                _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
                 OnMarketClicked?.Invoke(false);
             }
             else
             {
-                // Деактивируем Limit (если был), активируем Market
                 if (IsLimitActive)
                 {
                     IsLimitActive = false;
                     PanelStyles.ApplyModeButtonStyle(_limitButton, false);
+                    PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false);
                     OnLimitClicked?.Invoke(false);
                 }
-
                 IsMarketActive = true;
                 PanelStyles.ApplyModeButtonStyle(_marketButton, true);
+                PanelStyles.ApplyModeButtonStyle(_miniMarketButton, true);
+                _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
                 OnMarketClicked?.Invoke(true);
             }
         }
 
-        private void SubmitButton_Click(ButtonClickEventArgs args)
+        /// <summary>Выставить ордер. При свёрнутой панели ордер выставляется по последним заданным уровням (до свёртывания или в Fast Order).</summary>
+        private void TrySubmitOrder()
         {
             if (_submitButton.IsEnabled)
                 OnSubmitClicked?.Invoke();
         }
+
+        /// <summary>Стиль мини-кнопки OK: как ApplySubmitButtonStyle, плюс Margin и FontSize для выравнивания с соседними мини-кнопками.</summary>
+        private void ApplyMiniSubmitButtonStyle(int state)
+        {
+            PanelStyles.ApplySubmitButtonStyle(_miniSubmitButton, state);
+            _miniSubmitButton.Margin = new Thickness(2);
+            _miniSubmitButton.FontSize = MiniButtonFontSize;
+        }
+
+        private void SetFastOrder(bool value)
+        {
+            _isUpdatingFromCode = true;
+            _fastOrderCheckBox.IsChecked = value;
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, value);
+            _miniFoButton.FontSize = MiniButtonFontSize;
+            OnFastOrderToggled?.Invoke(value);
+            _isUpdatingFromCode = false;
+        }
+
+        private void FastOrderCheckBox_Click(CheckBoxEventArgs args)
+        {
+            if (_isUpdatingFromCode) return;
+            bool isChecked = _fastOrderCheckBox.IsChecked == true;
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, isChecked);
+            _miniFoButton.FontSize = MiniButtonFontSize;
+            OnFastOrderToggled?.Invoke(isChecked);
+        }
+
+        private void LimitButton_Click(ButtonClickEventArgs args) => ActivateLimit();
+
+        private void MarketButton_Click(ButtonClickEventArgs args) => ActivateMarket();
+
+        private void SubmitButton_Click(ButtonClickEventArgs args) => TrySubmitOrder();
 
         private void RiskTextBox_TextChanged(TextChangedEventArgs args)
         {
