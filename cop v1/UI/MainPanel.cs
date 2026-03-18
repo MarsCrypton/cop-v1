@@ -136,7 +136,7 @@ namespace COP_v1.UI
         /// <summary>
         /// Создать панель COP v1.
         /// </summary>
-        public MainPanel(Robot bot, VerticalPosition vPos, HorizontalPosition hPos, double maxRiskPercent, bool fastOrderMode, int panelTransparencyPercent = 10)
+        public MainPanel(Robot bot, VerticalPosition vPos, HorizontalPosition hPos, double maxRiskPercent, bool fastOrderMode, int panelTransparencyPercent = 0)
         {
             _bot = bot;
             _panelTransparencyPercent = Math.Max(0, Math.Min(panelTransparencyPercent, 80));
@@ -496,7 +496,6 @@ namespace COP_v1.UI
             _miniPanelStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                BackgroundColor = PanelStyles.PanelBackground,
                 Margin = new Thickness(miniPanelMarginH, miniPanelMarginV, miniPanelMarginH, miniPanelMarginV),
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -508,8 +507,7 @@ namespace COP_v1.UI
             // ===== Собираем всё в основной стек =====
             _mainStack = new StackPanel
             {
-                Orientation = Orientation.Vertical,
-                BackgroundColor = PanelStyles.PanelBackground
+                Orientation = Orientation.Vertical
             };
             _mainStack.AddChild(headerStack);
             _mainStack.AddChild(_miniPanelStack);

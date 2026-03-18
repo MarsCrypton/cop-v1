@@ -23,7 +23,7 @@ namespace COP_v1
         [Parameter("Horizontal Position", Group = "Panel alignment", DefaultValue = HorizontalPosition.Right)]
         public HorizontalPosition HPosition { get; set; }
 
-        [Parameter("Panel transparency %", Group = "Panel alignment", DefaultValue = 10, MinValue = 0, MaxValue = 80)]
+        [Parameter("Panel transparency %", Group = "Panel alignment", DefaultValue = 0, MinValue = 0, MaxValue = 80)]
         public int PanelTransparencyPercent { get; set; }
 
         #endregion
@@ -83,9 +83,26 @@ namespace COP_v1
                 _currentRiskMode = RiskMode;
 
             // Создать и отобразить панель
-            int panelTransparency = LoadSavedTransparency();
-            if (panelTransparency < 0)
+            // Прозрачность панели: синхронизация "шестерёнка" ↔ in-panel настройки.
+            // Правило:
+            // - если LocalStorage пустой → берём параметр бота
+            // - если LocalStorage есть, но пользователь поменял параметр в настройках бота → считаем параметр новым источником правды и перезаписываем LocalStorage
+            // - иначе берём сохранённое значение
+            int savedTransparency = LoadSavedTransparency();
+            int panelTransparency;
+            if (savedTransparency < 0)
+            {
                 panelTransparency = PanelTransparencyPercent;
+            }
+            else if (savedTransparency != PanelTransparencyPercent)
+            {
+                panelTransparency = PanelTransparencyPercent;
+                SaveTransparency(panelTransparency);
+            }
+            else
+            {
+                panelTransparency = savedTransparency;
+            }
 
             _mainPanel = new MainPanel(this, VPosition, HPosition, MaxRiskPercent, FastOrderMode == YesNo.Yes, panelTransparency);
             Chart.AddControl(_mainPanel.RootControl);
