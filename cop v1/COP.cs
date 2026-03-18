@@ -30,8 +30,8 @@ namespace COP_v1
         [Parameter("Max Risk %", Group = "Default trade parameters", DefaultValue = 2.0, MinValue = 0.1, MaxValue = 100.0)]
         public double MaxRiskPercent { get; set; }
 
-        [Parameter("Fast Order Mode", Group = "Default trade parameters", DefaultValue = false)]
-        public bool FastOrderMode { get; set; }
+        [Parameter("Fast Order Mode", Group = "Default trade parameters", DefaultValue = YesNo.No)]
+        public YesNo FastOrderMode { get; set; }
 
         [Parameter("Interface Language", Group = "Default trade parameters", DefaultValue = Language.EN)]
         public Language InterfaceLanguage { get; set; }
@@ -64,7 +64,7 @@ namespace COP_v1
             Localization.SetLanguage(InterfaceLanguage);
 
             // Создать и отобразить панель (всегда с параметром по умолчанию — так панель гарантированно появляется)
-            _mainPanel = new MainPanel(this, VPosition, HPosition, MaxRiskPercent, FastOrderMode);
+            _mainPanel = new MainPanel(this, VPosition, HPosition, MaxRiskPercent, FastOrderMode == YesNo.Yes);
             Chart.AddControl(_mainPanel.RootControl);
 
             // После отображения панели подставить сохранённый % риска (если был сохранён ранее)
@@ -749,12 +749,28 @@ namespace COP_v1
     }
 
     /// <summary>
+    /// Варианты выбора для параметров (Yes/No) — отображаются в настройках робота только на английском.
+    /// </summary>
+    public enum YesNo
+    {
+        No,
+        Yes
+    }
+
+    /// <summary>
     /// Язык интерфейса панели.
     /// </summary>
     public enum Language
     {
         EN,
-        RU
+        RU,
+        DE,
+        FR,
+        ES,
+        IT,
+        PL,
+        NL,
+        PT
     }
 
     #endregion
