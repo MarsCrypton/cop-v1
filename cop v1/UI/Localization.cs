@@ -384,6 +384,18 @@ namespace COP_v1.UI
                 [Language.NL] = "Volumemodus",
                 [Language.PT] = "Modo volume"
             },
+            ["PanelTransparencyLabel"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Panel transparency",
+                [Language.RU] = "Прозрачность панели",
+                [Language.DE] = "Panel-Transparenz",
+                [Language.FR] = "Transparence du panneau",
+                [Language.ES] = "Transparencia del panel",
+                [Language.IT] = "Trasparenza pannello",
+                [Language.PL] = "Przezroczystość panelu",
+                [Language.NL] = "Paneeltransparantie",
+                [Language.PT] = "Transparência do painel"
+            },
             ["TpVolumeEqualVolume"] = new Dictionary<Language, string>
             {
                 [Language.EN] = "Equal volume",

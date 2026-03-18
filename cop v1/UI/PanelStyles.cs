@@ -73,6 +73,25 @@ namespace COP_v1.UI
         #region Helper methods
 
         /// <summary>
+        /// Возвращает цвет фона панели с заданной прозрачностью.
+        /// transparencyPercent: 0 = непрозрачный, 20 = 20% прозрачный (80% непрозрачный).
+        /// </summary>
+        public static Color GetPanelBackgroundWithTransparency(int transparencyPercent)
+        {
+            if (transparencyPercent <= 0)
+                return PanelBackground;
+
+            if (transparencyPercent >= 100)
+                transparencyPercent = 99;
+
+            int alpha = (int)System.Math.Round(255.0 * (100 - transparencyPercent) / 100.0);
+            if (alpha < 0) alpha = 0;
+            if (alpha > 255) alpha = 255;
+
+            return Color.FromArgb(alpha, PanelBackground);
+        }
+
+        /// <summary>
         /// Применить стиль к кнопке режима (Limit / Market).
         /// Включает hover-эффект: серая кнопка подсвечивается при наведении.
         /// </summary>

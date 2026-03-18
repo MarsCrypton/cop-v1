@@ -23,6 +23,9 @@ namespace COP_v1
         [Parameter("Horizontal Position", Group = "Panel alignment", DefaultValue = HorizontalPosition.Right)]
         public HorizontalPosition HPosition { get; set; }
 
+        [Parameter("Panel transparency %", Group = "Panel alignment", DefaultValue = 10, MinValue = 0, MaxValue = 80)]
+        public int PanelTransparencyPercent { get; set; }
+
         #endregion
 
         #region Parameters — Default trade parameters
@@ -80,7 +83,11 @@ namespace COP_v1
                 _currentRiskMode = RiskMode;
 
             // Создать и отобразить панель
-            _mainPanel = new MainPanel(this, VPosition, HPosition, MaxRiskPercent, FastOrderMode == YesNo.Yes);
+            int panelTransparency = LoadSavedTransparency();
+            if (panelTransparency < 0)
+                panelTransparency = PanelTransparencyPercent;
+
+            _mainPanel = new MainPanel(this, VPosition, HPosition, MaxRiskPercent, FastOrderMode == YesNo.Yes, panelTransparency);
             Chart.AddControl(_mainPanel.RootControl);
 
             ApplyInitialRiskToPanel();
@@ -106,6 +113,7 @@ namespace COP_v1
             _mainPanel.OnPriceChanged += HandlePriceFieldChanged;
             _mainPanel.OnSlChanged += HandleSlFieldChanged;
             _mainPanel.OnTpChanged += HandleTpFieldChanged;
+            _mainPanel.OnTransparencyChanged += SaveTransparency;
 
             // Подписаться на изменение линий
             _chartLineManager.OnLinesChanged += HandleLinesChanged;
@@ -360,6 +368,32 @@ namespace COP_v1
                 // LocalStorage может быть недоступен (например, в части окружений)
             }
             return MaxRiskPercent;
+        }
+
+        private const string TransparencyStorageKey = "COP PanelTransparencyPercent";
+
+        private int LoadSavedTransparency()
+        {
+            try
+            {
+                string saved = LocalStorage.GetString(TransparencyStorageKey, LocalStorageScope.Device);
+                if (string.IsNullOrWhiteSpace(saved)) return -1;
+                if (int.TryParse(saved, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
+                    return Math.Max(0, Math.Min(result, 80));
+            }
+            catch { }
+            return -1;
+        }
+
+        private void SaveTransparency(int percent)
+        {
+            try
+            {
+                int clamped = Math.Max(0, Math.Min(percent, 80));
+                LocalStorage.SetString(TransparencyStorageKey, clamped.ToString(CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.Flush(LocalStorageScope.Device);
+            }
+            catch { }
         }
 
         private double LoadSavedRiskUsd()

@@ -36,6 +36,13 @@ namespace COP_v1.UI
         private bool _settingsPanelVisible;
         private readonly ComboBox _tpCountCombo;
         private readonly ComboBox _tpVolumeModeCombo;
+        private readonly ComboBox _transparencyCombo;
+
+        /// <summary>Вызывается при изменении прозрачности фона панели из настроек. Аргумент: новый процент (0–80).</summary>
+        public event Action<int> OnTransparencyChanged;
+
+        /// <summary>Текущий процент прозрачности фона панелей (0–80).</summary>
+        private int _panelTransparencyPercent;
 
         // === Контент (скрывается при сворачивании) ===
         private readonly StackPanel _contentStack;
@@ -129,9 +136,11 @@ namespace COP_v1.UI
         /// <summary>
         /// Создать панель COP v1.
         /// </summary>
-        public MainPanel(Robot bot, VerticalPosition vPos, HorizontalPosition hPos, double maxRiskPercent, bool fastOrderMode)
+        public MainPanel(Robot bot, VerticalPosition vPos, HorizontalPosition hPos, double maxRiskPercent, bool fastOrderMode, int panelTransparencyPercent = 10)
         {
             _bot = bot;
+            _panelTransparencyPercent = Math.Max(0, Math.Min(panelTransparencyPercent, 80));
+            Color panelBg = PanelStyles.GetPanelBackgroundWithTransparency(_panelTransparencyPercent);
 
             // ===== Заголовок =====
             _titleText = new TextBlock
@@ -510,7 +519,7 @@ namespace COP_v1.UI
             _rootBorder = new Border
             {
                 Child = _mainStack,
-                BackgroundColor = PanelStyles.PanelBackground,
+                BackgroundColor = panelBg,
                 BorderColor = PanelStyles.SeparatorColor,
                 BorderThickness = new Thickness(1),
                 CornerRadius = PanelStyles.CornerRadius,
@@ -591,16 +600,45 @@ namespace COP_v1.UI
             tpVolumeModeRow.AddChild(tpVolumeModeLabel);
             tpVolumeModeRow.AddChild(_tpVolumeModeCombo);
 
+            // --- Прозрачность фона панели (0–80 %) ---
+            var transparencyLabel = new TextBlock
+            {
+                Text = Localization.Get("PanelTransparencyLabel"),
+                ForegroundColor = PanelStyles.TextColor,
+                FontSize = PanelStyles.FontSizeSmall,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 4, 8, 4)
+            };
+            _transparencyCombo = new ComboBox
+            {
+                Width = 80,
+                Height = 22,
+                Margin = new Thickness(4, 4, 4, 4)
+            };
+            for (int p = 0; p <= 80; p += 10)
+                _transparencyCombo.AddItem(p + "%");
+            _transparencyCombo.SelectedIndex = Math.Min(_panelTransparencyPercent / 10, 8);
+            _transparencyCombo.SelectedItemChanged += TransparencyCombo_SelectedItemChanged;
+
+            var transparencyRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(2, 2, 2, 2)
+            };
+            transparencyRow.AddChild(transparencyLabel);
+            transparencyRow.AddChild(_transparencyCombo);
+
             var settingsContent = new StackPanel { Orientation = Orientation.Vertical };
             settingsContent.AddChild(settingsHeaderRow);
             settingsContent.AddChild(CreateSeparator());
             settingsContent.AddChild(tpCountRow);
             settingsContent.AddChild(tpVolumeModeRow);
+            settingsContent.AddChild(transparencyRow);
 
             _settingsPanelBorder = new Border
             {
                 Child = settingsContent,
-                BackgroundColor = PanelStyles.PanelBackground,
+                BackgroundColor = panelBg,
                 BorderColor = PanelStyles.SeparatorColor,
                 BorderThickness = new Thickness(1),
                 CornerRadius = PanelStyles.CornerRadius,
@@ -924,6 +962,24 @@ namespace COP_v1.UI
         {
             _settingsPanelVisible = !_settingsPanelVisible;
             _settingsPanelBorder.IsVisible = _settingsPanelVisible;
+        }
+
+        private void TransparencyCombo_SelectedItemChanged(ComboBoxSelectedItemChangedEventArgs args)
+        {
+            int idx = _transparencyCombo.SelectedIndex;
+            if (idx < 0 || idx > 8) return;
+            int percent = idx * 10;
+            ApplyPanelTransparency(percent);
+            OnTransparencyChanged?.Invoke(percent);
+        }
+
+        /// <summary>Применить прозрачность фона ко всем панелям (основная + настройки).</summary>
+        private void ApplyPanelTransparency(int percent)
+        {
+            _panelTransparencyPercent = Math.Max(0, Math.Min(percent, 80));
+            Color panelBg = PanelStyles.GetPanelBackgroundWithTransparency(_panelTransparencyPercent);
+            _rootBorder.BackgroundColor = panelBg;
+            _settingsPanelBorder.BackgroundColor = panelBg;
         }
 
         // Summary-текст настроек TP удалён (раньше отображался справа от риска).
