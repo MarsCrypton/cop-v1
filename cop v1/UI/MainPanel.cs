@@ -48,10 +48,12 @@ namespace COP_v1.UI
         private readonly Button _limitButton;
         private readonly Button _marketButton;
 
-        // === Блок риска + отображение настроек TP ===
+        // === Блок риска (RiskMode + значение) ===
         private readonly TextBlock _riskLabel;
+        private readonly ComboBox _riskModeCombo;
         private readonly TextBox _riskTextBox;
-        private readonly TextBlock _tpSettingsDisplayText;
+        private readonly TextBlock _riskUnitText;
+        private readonly TextBlock _riskErrorText;
 
         // === Блок цены входа ===
         private readonly TextBlock _priceLabel;
@@ -108,6 +110,9 @@ namespace COP_v1.UI
 
         /// <summary>Вызывается при изменении значения риска в поле ввода. Аргумент: новый текст.</summary>
         public event Action<string> OnRiskChanged;
+
+        /// <summary>Вызывается при смене режима риска (Percent/USD/EUR).</summary>
+        public event Action<RiskMode> OnRiskModeChanged;
 
         /// <summary>Вызывается при изменении значения цены Entry. Аргумент: новый текст.</summary>
         public event Action<string> OnPriceChanged;
@@ -255,35 +260,64 @@ namespace COP_v1.UI
             // ===== Разделитель =====
             var sep1 = CreateSeparator();
 
-            // ===== Блок риска (половина ширины) + отображение настроек TP (половина) =====
-            double halfPanelWidth = (PanelStyles.PanelWidth - 16) / 2;
-            _riskLabel = new TextBlock { Text = Localization.Get("MaxRisk") };
+            // ===== Блок риска (в одну строку) =====
+            double innerWidth = PanelStyles.PanelWidth - 16;
+            _riskLabel = new TextBlock { Text = Localization.Get("Risk") };
             PanelStyles.ApplyLabelStyle(_riskLabel);
+
+            _riskModeCombo = new ComboBox
+            {
+                Width = 84,
+                Height = 22,
+                Margin = new Thickness(4, 2, 2, 2)
+            };
+            _riskModeCombo.AddItem("Percent");
+            _riskModeCombo.AddItem("USD");
+            _riskModeCombo.AddItem("EUR");
+            _riskModeCombo.SelectedIndex = 0;
+            _riskModeCombo.SelectedItemChanged += RiskModeCombo_SelectedItemChanged;
 
             _riskTextBox = new TextBox
             {
                 Text = maxRiskPercent.ToString("F2"),
-                Width = halfPanelWidth - 12,
-                Margin = new Thickness(4, 2, 4, 2)
+                Width = innerWidth - 84 - 28 - 12,
+                Margin = new Thickness(2, 2, 2, 2)
             };
             PanelStyles.ApplyTextBoxStyle(_riskTextBox);
             _riskTextBox.TextChanged += RiskTextBox_TextChanged;
 
-            _tpSettingsDisplayText = new TextBlock
+            _riskUnitText = new TextBlock
             {
-                Text = "",
+                Text = "%",
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 2, 4, 2),
-                TextWrapping = TextWrapping.Wrap
+                Margin = new Thickness(0, 0, 4, 0)
             };
 
-            var riskColumn = new StackPanel { Orientation = Orientation.Vertical, Width = halfPanelWidth };
+            var riskInlineRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            riskInlineRow.AddChild(_riskModeCombo);
+            riskInlineRow.AddChild(_riskTextBox);
+            riskInlineRow.AddChild(_riskUnitText);
+
+            _riskErrorText = new TextBlock
+            {
+                Text = "",
+                ForegroundColor = PanelStyles.ButtonError,
+                FontSize = PanelStyles.FontSizeSmall,
+                Margin = new Thickness(4, 0, 4, 2),
+                TextWrapping = TextWrapping.Wrap,
+                IsVisible = false
+            };
+
+            var riskColumn = new StackPanel { Orientation = Orientation.Vertical };
             riskColumn.AddChild(_riskLabel);
-            riskColumn.AddChild(_riskTextBox);
-            var tpSettingsColumn = new StackPanel { Orientation = Orientation.Vertical, Width = halfPanelWidth };
-            tpSettingsColumn.AddChild(_tpSettingsDisplayText);
+            riskColumn.AddChild(riskInlineRow);
+            riskColumn.AddChild(_riskErrorText);
             var riskRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -291,7 +325,6 @@ namespace COP_v1.UI
                 Margin = new Thickness(2, 2, 2, 2)
             };
             riskRow.AddChild(riskColumn);
-            riskRow.AddChild(tpSettingsColumn);
 
             // ===== Блок цены входа =====
             _priceLabel = new TextBlock { Text = Localization.Get("LimitOrder") };
@@ -520,7 +553,7 @@ namespace COP_v1.UI
             _tpCountCombo.AddItem(Localization.Get("TpCount1"));
             _tpCountCombo.AddItem(Localization.Get("TpCount2"));
             _tpCountCombo.AddItem(Localization.Get("TpCount3"));
-            _tpCountCombo.SelectedItemChanged += (args) => UpdateTpSettingsDisplay();
+            _tpCountCombo.SelectedItemChanged += (args) => { };
             // По умолчанию 1 тейк (индекс 0).
             _tpCountCombo.SelectedIndex = 0;
             var tpCountRow = new StackPanel
@@ -549,7 +582,7 @@ namespace COP_v1.UI
             _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualVolume"));
             _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualProfit"));
             _tpVolumeModeCombo.SelectedIndex = 0; // равный объём по умолчанию
-            _tpVolumeModeCombo.SelectedItemChanged += (args) => UpdateTpSettingsDisplay();
+            _tpVolumeModeCombo.SelectedItemChanged += (args) => { };
             var tpVolumeModeRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -609,7 +642,7 @@ namespace COP_v1.UI
                 _toggleButton.Text = "-";
             }
 
-            UpdateTpSettingsDisplay();
+            UpdateRiskUnit();
         }
 
         #region Public properties
@@ -625,6 +658,26 @@ namespace COP_v1.UI
 
         /// <summary>Текущее значение риска из поля ввода (как строка).</summary>
         public string RiskText => _riskTextBox.Text;
+
+        public void SetRiskMode(RiskMode mode)
+        {
+            _isUpdatingFromCode = true;
+            _riskModeCombo.SelectedIndex = mode == RiskMode.USD ? 1 : (mode == RiskMode.EUR ? 2 : 0);
+            UpdateRiskUnit();
+            _isUpdatingFromCode = false;
+        }
+
+        public void ShowRiskError(string message)
+        {
+            _riskErrorText.Text = message ?? "";
+            _riskErrorText.IsVisible = !string.IsNullOrWhiteSpace(_riskErrorText.Text);
+        }
+
+        public void ClearRiskError()
+        {
+            _riskErrorText.Text = "";
+            _riskErrorText.IsVisible = false;
+        }
 
         /// <summary>Установить значение риска в поле (без вызова OnRiskChanged).</summary>
         public void SetRiskText(string value)
@@ -873,13 +926,7 @@ namespace COP_v1.UI
             _settingsPanelBorder.IsVisible = _settingsPanelVisible;
         }
 
-        private void UpdateTpSettingsDisplay()
-        {
-            string modeText = TpVolumeMode == TpVolumeMode.EqualVolume
-                ? Localization.Get("TpVolumeEqualVolume")
-                : Localization.Get("TpVolumeEqualProfit");
-            _tpSettingsDisplayText.Text = string.Format("TP: {0}\n{1}", TpCount, modeText);
-        }
+        // Summary-текст настроек TP удалён (раньше отображался справа от риска).
 
         private void ActivateLimit()
         {
@@ -979,6 +1026,19 @@ namespace COP_v1.UI
         {
             if (_isUpdatingFromCode) return;
             OnRiskChanged?.Invoke(_riskTextBox.Text);
+        }
+
+        private void RiskModeCombo_SelectedItemChanged(ComboBoxSelectedItemChangedEventArgs args)
+        {
+            if (_isUpdatingFromCode) return;
+            UpdateRiskUnit();
+            RiskMode mode = _riskModeCombo.SelectedIndex == 1 ? RiskMode.USD : (_riskModeCombo.SelectedIndex == 2 ? RiskMode.EUR : RiskMode.Percent);
+            OnRiskModeChanged?.Invoke(mode);
+        }
+
+        private void UpdateRiskUnit()
+        {
+            _riskUnitText.Text = _riskModeCombo.SelectedIndex == 1 ? "USD" : (_riskModeCombo.SelectedIndex == 2 ? "EUR" : "%");
         }
 
         private void PriceTextBox_TextChanged(TextChangedEventArgs args)
