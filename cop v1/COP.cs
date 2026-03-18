@@ -27,8 +27,17 @@ namespace COP_v1
 
         #region Parameters — Default trade parameters
 
+        [Parameter("Risk Mode", Group = "Default trade parameters", DefaultValue = RiskMode.Percent)]
+        public RiskMode RiskMode { get; set; }
+
         [Parameter("Max Risk %", Group = "Default trade parameters", DefaultValue = 2.0, MinValue = 0.1, MaxValue = 100.0)]
         public double MaxRiskPercent { get; set; }
+
+        [Parameter("Max Risk USD", Group = "Default trade parameters", DefaultValue = 50.0, MinValue = 0.01)]
+        public double MaxRiskUsd { get; set; }
+
+        [Parameter("Max Risk EUR", Group = "Default trade parameters", DefaultValue = 50.0, MinValue = 0.01)]
+        public double MaxRiskEur { get; set; }
 
         [Parameter("Fast Order Mode", Group = "Default trade parameters", DefaultValue = YesNo.No)]
         public YesNo FastOrderMode { get; set; }
@@ -54,6 +63,8 @@ namespace COP_v1
         private double _lastVolumeLots;
         private OrderDirection _lastDirection = OrderDirection.Invalid;
 
+        private RiskMode _currentRiskMode = RiskMode.Percent;
+
         #endregion
 
         #region Lifecycle
@@ -63,25 +74,16 @@ namespace COP_v1
             // Инициализировать локализацию
             Localization.SetLanguage(InterfaceLanguage);
 
-            // Создать и отобразить панель (всегда с параметром по умолчанию — так панель гарантированно появляется)
+            // Режим риска: приоритет у сохранённого значения (совместимость)
+            _currentRiskMode = LoadSavedRiskMode();
+            if (_currentRiskMode == RiskMode.Unknown)
+                _currentRiskMode = RiskMode;
+
+            // Создать и отобразить панель
             _mainPanel = new MainPanel(this, VPosition, HPosition, MaxRiskPercent, FastOrderMode == YesNo.Yes);
             Chart.AddControl(_mainPanel.RootControl);
 
-            // После отображения панели подставить сохранённый % риска (если был сохранён ранее)
-            try
-            {
-                double savedRisk = LoadSavedRiskPercent();
-                if (!double.IsNaN(savedRisk) && savedRisk >= 0.1 && savedRisk <= 100)
-                {
-                    _mainPanel.SetRiskText(savedRisk.ToString("F2", CultureInfo.InvariantCulture));
-                    if (Math.Abs(savedRisk - MaxRiskPercent) > 0.001)
-                        Print("COP: загружен сохранённый риск: {0}%", savedRisk.ToString("F2", CultureInfo.InvariantCulture));
-                }
-            }
-            catch (Exception ex)
-            {
-                Print("COP: не удалось загрузить сохранённый риск: {0}", ex.Message);
-            }
+            ApplyInitialRiskToPanel();
 
             // Инициализировать менеджеры
             _chartLineManager = new ChartLineManager(this);
@@ -92,13 +94,14 @@ namespace COP_v1
                 _chartLineManager,
                 _riskCalculator,
                 HandleFastOrderReady,
-                () => ParseRisk(_mainPanel.RiskText));
+                () => GetCurrentRiskInput());
 
             // Подписаться на события панели
             _mainPanel.OnLimitClicked += HandleLimitClicked;
             _mainPanel.OnMarketClicked += HandleMarketClicked;
             _mainPanel.OnSubmitClicked += HandleSubmitClicked;
             _mainPanel.OnRiskChanged += HandleRiskChanged;
+            _mainPanel.OnRiskModeChanged += HandleRiskModeChanged;
             _mainPanel.OnFastOrderToggled += HandleFastOrderToggled;
             _mainPanel.OnPriceChanged += HandlePriceFieldChanged;
             _mainPanel.OnSlChanged += HandleSlFieldChanged;
@@ -207,11 +210,16 @@ namespace COP_v1
             else if (_isLimitMode == false)
                 entryPrice = Symbol.Bid;
 
-            // === 3. Получить % риска из поля ===
-            double riskPercent = ParseRisk(_mainPanel.RiskText);
+            // === 3. Получить риск и пересчитать объём ===
+            if (!TryGetRiskAmountInAccountCurrency(out double riskMoneyAccount, out string riskError))
+            {
+                _mainPanel.ShowRiskError(riskError);
+                return;
+            }
+            _mainPanel.ClearRiskError();
 
             // === 4. Рассчитать объём ===
-            _lastVolumeUnits = _riskCalculator.CalculateVolume(entryPrice, slPrice, riskPercent);
+            _lastVolumeUnits = _riskCalculator.CalculateVolumeFromRiskAmount(entryPrice, slPrice, riskMoneyAccount);
             _lastVolumeLots = _riskCalculator.ToLots(_lastVolumeUnits);
 
             // === 5. Рассчитать убыток/прибыль ===
@@ -352,6 +360,162 @@ namespace COP_v1
                 // LocalStorage может быть недоступен (например, в части окружений)
             }
             return MaxRiskPercent;
+        }
+
+        private double LoadSavedRiskUsd()
+        {
+            const string key = "COP MaxRiskUsd";
+            try
+            {
+                string saved = LocalStorage.GetString(key, LocalStorageScope.Device);
+                if (string.IsNullOrWhiteSpace(saved))
+                    return MaxRiskUsd;
+                string cleaned = saved.Replace(',', '.');
+                if (double.TryParse(cleaned, NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
+                    return Math.Max(0.01, result);
+            }
+            catch { }
+            return MaxRiskUsd;
+        }
+
+        private double LoadSavedRiskEur()
+        {
+            const string key = "COP MaxRiskEur";
+            try
+            {
+                string saved = LocalStorage.GetString(key, LocalStorageScope.Device);
+                if (string.IsNullOrWhiteSpace(saved))
+                    return MaxRiskEur;
+                string cleaned = saved.Replace(',', '.');
+                if (double.TryParse(cleaned, NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
+                    return Math.Max(0.01, result);
+            }
+            catch { }
+            return MaxRiskEur;
+        }
+
+        private RiskMode LoadSavedRiskMode()
+        {
+            const string key = "COP RiskMode";
+            try
+            {
+                string saved = LocalStorage.GetString(key, LocalStorageScope.Device);
+                if (string.IsNullOrWhiteSpace(saved))
+                    return RiskMode.Unknown;
+                if (Enum.TryParse(saved, true, out RiskMode mode))
+                    return mode;
+            }
+            catch { }
+            return RiskMode.Unknown;
+        }
+
+        private void SaveRiskMode(RiskMode mode)
+        {
+            try
+            {
+                LocalStorage.SetString("COP RiskMode", mode.ToString(), LocalStorageScope.Device);
+                LocalStorage.Flush(LocalStorageScope.Device);
+            }
+            catch { }
+        }
+
+        private void SaveRiskValueForMode(RiskMode mode, string text)
+        {
+            try
+            {
+                switch (mode)
+                {
+                    case RiskMode.Percent:
+                        {
+                            double parsed = ParseRisk(text);
+                            LocalStorage.SetString("COP MaxRiskPercent", parsed.ToString("F2", CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                            break;
+                        }
+                    case RiskMode.USD:
+                        {
+                            double parsed = ParsePositiveNumber(text, MaxRiskUsd);
+                            LocalStorage.SetString("COP MaxRiskUsd", parsed.ToString("F2", CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                            break;
+                        }
+                    case RiskMode.EUR:
+                        {
+                            double parsed = ParsePositiveNumber(text, MaxRiskEur);
+                            LocalStorage.SetString("COP MaxRiskEur", parsed.ToString("F2", CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                            break;
+                        }
+                }
+                LocalStorage.Flush(LocalStorageScope.Device);
+            }
+            catch { }
+        }
+
+        private double ParsePositiveNumber(string text, double fallback)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return fallback;
+            string cleaned = text.Replace(',', '.');
+            if (double.TryParse(cleaned, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) && result > 0)
+                return result;
+            return fallback;
+        }
+
+        private void ApplyInitialRiskToPanel()
+        {
+            _mainPanel.SetRiskMode(_currentRiskMode);
+            try
+            {
+                switch (_currentRiskMode)
+                {
+                    case RiskMode.Percent:
+                        _mainPanel.SetRiskText(LoadSavedRiskPercent().ToString("F2", CultureInfo.InvariantCulture));
+                        break;
+                    case RiskMode.USD:
+                        _mainPanel.SetRiskText(LoadSavedRiskUsd().ToString("F2", CultureInfo.InvariantCulture));
+                        break;
+                    case RiskMode.EUR:
+                        _mainPanel.SetRiskText(LoadSavedRiskEur().ToString("F2", CultureInfo.InvariantCulture));
+                        break;
+                }
+            }
+            catch { }
+        }
+
+        private (RiskMode mode, string text) GetCurrentRiskInput() => (_currentRiskMode, _mainPanel.RiskText);
+
+        private bool TryGetRiskAmountInAccountCurrency(out double riskMoneyAccount, out string error)
+        {
+            riskMoneyAccount = 0;
+            error = null;
+
+            string accountCurrency = Account.Asset?.Name;
+            if (string.IsNullOrWhiteSpace(accountCurrency))
+                accountCurrency = "USD";
+
+            if (_currentRiskMode == RiskMode.Percent)
+            {
+                double percent = ParseRisk(_mainPanel.RiskText);
+                riskMoneyAccount = Account.Balance * (percent / 100.0);
+                return riskMoneyAccount > 0;
+            }
+
+            double riskMoney = ParsePositiveNumber(_mainPanel.RiskText, _currentRiskMode == RiskMode.USD ? MaxRiskUsd : MaxRiskEur);
+            string from = _currentRiskMode == RiskMode.USD ? "USD" : "EUR";
+            try
+            {
+                double converted = AssetConverter.Convert(riskMoney, from, accountCurrency);
+                if (double.IsNaN(converted) || double.IsInfinity(converted) || converted <= 0)
+                {
+                    error = Localization.Get("RiskConvertError");
+                    return false;
+                }
+                riskMoneyAccount = converted;
+                return true;
+            }
+            catch
+            {
+                error = Localization.Get("RiskConvertError");
+                return false;
+            }
         }
 
         /// <summary>
@@ -510,25 +674,38 @@ namespace COP_v1
 
         private void HandleRiskChanged(string newText)
         {
-            // Сохранить новый % риска в LocalStorage (Device — общее хранилище, сохраняется между перезапусками)
-            try
-            {
-                double parsed = ParseRisk(newText);
-                const string key = "COP MaxRiskPercent";
-                LocalStorage.SetString(key, parsed.ToString("F2", CultureInfo.InvariantCulture), LocalStorageScope.Device);
-                LocalStorage.Flush(LocalStorageScope.Device);
-                Print("COP: риск сохранён: {0}%", parsed.ToString("F2", CultureInfo.InvariantCulture));
-            }
-            catch (Exception ex)
-            {
-                Print("COP: не удалось сохранить риск: {0}", ex.Message);
-            }
+            SaveRiskValueForMode(_currentRiskMode, newText);
 
             // Пересчитать всё при изменении риска
             if (_isLimitMode != null && _chartLineManager.HasAnyLines)
             {
                 RecalculateAll();
             }
+        }
+
+        private void HandleRiskModeChanged(RiskMode newMode)
+        {
+            if (newMode == _currentRiskMode)
+                return;
+
+            _currentRiskMode = newMode;
+            SaveRiskMode(_currentRiskMode);
+
+            switch (_currentRiskMode)
+            {
+                case RiskMode.Percent:
+                    _mainPanel.SetRiskText(LoadSavedRiskPercent().ToString("F2", CultureInfo.InvariantCulture));
+                    break;
+                case RiskMode.USD:
+                    _mainPanel.SetRiskText(LoadSavedRiskUsd().ToString("F2", CultureInfo.InvariantCulture));
+                    break;
+                case RiskMode.EUR:
+                    _mainPanel.SetRiskText(LoadSavedRiskEur().ToString("F2", CultureInfo.InvariantCulture));
+                    break;
+            }
+
+            if (_isLimitMode != null && _chartLineManager.HasAnyLines)
+                RecalculateAll();
         }
 
         private void HandleFastOrderToggled(bool isEnabled)
@@ -683,8 +860,18 @@ namespace COP_v1
             if (isMarket)
                 entryPrice = direction == OrderDirection.Long ? Symbol.Ask : Symbol.Bid;
 
-            double riskPercent = ParseRisk(_mainPanel.RiskText);
-            double totalVolumeUnits = _riskCalculator.CalculateVolume(entryPrice, slPrice, riskPercent);
+            if (!TryGetRiskAmountInAccountCurrency(out double riskMoneyAccount, out string riskError))
+            {
+                _mainPanel.ShowRiskError(riskError);
+                _chartLineManager.RemoveAllLines();
+                _mainPanel.ResetToIdle();
+                _isLimitMode = null;
+                _lastDirection = OrderDirection.Invalid;
+                return;
+            }
+            _mainPanel.ClearRiskError();
+
+            double totalVolumeUnits = _riskCalculator.CalculateVolumeFromRiskAmount(entryPrice, slPrice, riskMoneyAccount);
             bool isLong = direction == OrderDirection.Long;
             double[] volumes = SplitVolumesForTps(totalVolumeUnits, entryPrice, tpPrices, isLong);
 
@@ -771,6 +958,14 @@ namespace COP_v1
         PL,
         NL,
         PT
+    }
+
+    public enum RiskMode
+    {
+        Unknown = 0,
+        Percent = 1,
+        USD = 2,
+        EUR = 3
     }
 
     #endregion

@@ -93,6 +93,32 @@ namespace COP_v1.UI
                 [Language.PT] = "Risco máx. %"
             },
 
+            ["Risk"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Risk",
+                [Language.RU] = "Риск",
+                [Language.DE] = "Risiko",
+                [Language.FR] = "Risque",
+                [Language.ES] = "Riesgo",
+                [Language.IT] = "Rischio",
+                [Language.PL] = "Ryzyko",
+                [Language.NL] = "Risico",
+                [Language.PT] = "Risco"
+            },
+
+            ["RiskConvertError"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Currency conversion failed",
+                [Language.RU] = "Ошибка конвертации валюты",
+                [Language.DE] = "Währungsumrechnung fehlgeschlagen",
+                [Language.FR] = "Conversion de devise échouée",
+                [Language.ES] = "Fallo en la conversión de divisa",
+                [Language.IT] = "Conversione valuta non riuscita",
+                [Language.PL] = "Nieudana konwersja waluty",
+                [Language.NL] = "Valutaconversie mislukt",
+                [Language.PT] = "Falha na conversão de moeda"
+            },
+
             // --- Заголовок блока цены ---
             ["LimitOrder"] = new Dictionary<Language, string>
             {

@@ -35,9 +35,26 @@ namespace COP_v1.Trading
                 return _bot.Symbol.VolumeInUnitsMin;
 
             double riskAmount = _bot.Account.Balance * (riskPercent / 100.0);
+            return CalculateVolumeFromRiskAmount(entryPrice, slPrice, riskAmount);
+        }
+
+        /// <summary>
+        /// Рассчитать объём позиции (в units) на основе суммы риска в валюте аккаунта.
+        /// VolumeInUnits = RiskAmount / (SL_pips * PipValue)
+        /// Результат нормализован к шагу и ограничен min/max.
+        /// </summary>
+        public double CalculateVolumeFromRiskAmount(double entryPrice, double slPrice, double riskAmount)
+        {
+            if (double.IsNaN(entryPrice) || double.IsNaN(slPrice) || double.IsNaN(riskAmount)
+                || entryPrice <= 0 || slPrice <= 0 || riskAmount <= 0)
+                return _bot.Symbol.VolumeInUnitsMin;
+
+            double slDistancePips = Math.Abs(entryPrice - slPrice) / _bot.Symbol.PipSize;
+            if (slDistancePips < 0.1 || _bot.Symbol.PipValue <= 0)
+                return _bot.Symbol.VolumeInUnitsMin;
+
             double volumeInUnits = riskAmount / (slDistancePips * _bot.Symbol.PipValue);
 
-            // Защита от Infinity (если PipValue слишком мал)
             if (double.IsInfinity(volumeInUnits) || double.IsNaN(volumeInUnits))
                 return _bot.Symbol.VolumeInUnitsMin;
 

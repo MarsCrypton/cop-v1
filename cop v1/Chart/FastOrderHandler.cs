@@ -25,9 +25,9 @@ namespace COP_v1.Chart
         private readonly Action<double, double, double[], bool> _onOrderReady;
 
         /// <summary>
-        /// Callback для получения текущего % риска из панели.
+        /// Callback для получения текущего режима риска и текста значения.
         /// </summary>
-        private readonly Func<double> _getRiskPercent;
+        private readonly Func<(RiskMode mode, string text)> _getRiskInput;
 
         // Состояние
         // 0 = неактивен, 1 = Entry, 2 = SL, 3 = TP1, 4 = TP2, 5 = TP3 (если _tpCount==3)
@@ -57,19 +57,19 @@ namespace COP_v1.Chart
         /// <param name="lineManager">Менеджер линий (для RemoveAllLines)</param>
         /// <param name="riskCalculator">Калькулятор риска (для динамических текстов)</param>
         /// <param name="onOrderReady">Callback(entry, sl, tpPrices, isMarket) — вызывается когда все уровни выбраны</param>
-        /// <param name="getRiskPercent">Функция для получения текущего % риска</param>
+        /// <param name="getRiskInput">Функция для получения текущего режима риска и текста</param>
         public FastOrderHandler(
             Robot bot,
             ChartLineManager lineManager,
             RiskCalculator riskCalculator,
             Action<double, double, double[], bool> onOrderReady,
-            Func<double> getRiskPercent)
+            Func<(RiskMode mode, string text)> getRiskInput)
         {
             _bot = bot;
             _lineManager = lineManager;
             _riskCalculator = riskCalculator;
             _onOrderReady = onOrderReady;
-            _getRiskPercent = getRiskPercent;
+            _getRiskInput = getRiskInput;
         }
 
         #region Public methods
@@ -312,10 +312,10 @@ namespace COP_v1.Chart
             if (_step == 1)
             {
                 // Entry — показать предполагаемый объём
-                double riskPercent = _getRiskPercent();
+                var (mode, riskText) = _getRiskInput();
                 // Примерный SL — 40% от видимой области ниже курсора
                 double approxSl = cursorPrice - (_bot.Chart.TopY - _bot.Chart.BottomY) * 0.10;
-                double vol = _riskCalculator.CalculateVolume(cursorPrice, approxSl, riskPercent);
+                double vol = GetVolumeForFastDisplay(cursorPrice, approxSl, mode, riskText);
                 double lots = _riskCalculator.ToLots(vol);
                 text = Localization.Get("LimitText", lots.ToString("F2"));
             }
@@ -323,8 +323,8 @@ namespace COP_v1.Chart
             {
                 // SL — показать % убытка
                 double entry = _isMarketMode ? _bot.Symbol.Bid : _entryPrice;
-                double riskPercent = _getRiskPercent();
-                double vol = _riskCalculator.CalculateVolume(entry, cursorPrice, riskPercent);
+                var (mode, riskText) = _getRiskInput();
+                double vol = GetVolumeForFastDisplay(entry, cursorPrice, mode, riskText);
                 double lots = _riskCalculator.ToLots(vol);
                 double slDollars, slPercent;
                 _riskCalculator.CalculateLoss(entry, cursorPrice, vol, out slDollars, out slPercent);
@@ -363,6 +363,38 @@ namespace COP_v1.Chart
             {
                 textObj.Text = text;
                 textObj.Y = cursorPrice;
+            }
+        }
+
+        private double GetVolumeForFastDisplay(double entryPrice, double slPrice, RiskMode mode, string text)
+        {
+            try
+            {
+                if (mode == RiskMode.Percent)
+                {
+                    string cleaned = (text ?? "").Replace(',', '.');
+                    if (!double.TryParse(cleaned, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double percent))
+                        percent = 1.0;
+                    percent = Math.Max(0.1, Math.Min(percent, 100.0));
+                    return _riskCalculator.CalculateVolume(entryPrice, slPrice, percent);
+                }
+
+                string amountCleaned = (text ?? "").Replace(',', '.');
+                if (!double.TryParse(amountCleaned, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double amount))
+                    amount = 1.0;
+                amount = Math.Max(0.01, amount);
+
+                string accountCurrency = _bot.Account.Asset?.Name;
+                if (string.IsNullOrWhiteSpace(accountCurrency))
+                    accountCurrency = "USD";
+
+                string from = mode == RiskMode.USD ? "USD" : "EUR";
+                double riskMoneyAccount = _bot.AssetConverter.Convert(amount, from, accountCurrency);
+                return _riskCalculator.CalculateVolumeFromRiskAmount(entryPrice, slPrice, riskMoneyAccount);
+            }
+            catch
+            {
+                return _bot.Symbol.VolumeInUnitsMin;
             }
         }
 
