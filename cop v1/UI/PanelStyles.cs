@@ -68,6 +68,17 @@ namespace COP_v1.UI
         /// <summary>Толщина линий на графике.</summary>
         public const int LineThickness = 1;
 
+        /// <summary>
+        /// ZIndex горизонтальных линий Entry/SL/TP: выше типичных пользовательских фигур на графике,
+        /// чтобы линию было проще схватить для перетаскивания (см. <c>ChartObject.ZIndex</c> в cAlgo).
+        /// </summary>
+        public const int ChartTradingLineZIndex = 1_000_000;
+
+        /// <summary>
+        /// Подписи у линий — чуть выше линии по Z, но без интерактивности, чтобы не перехватывать фокус у линии.
+        /// </summary>
+        public const int ChartTradingLabelZIndex = 1_000_001;
+
         #endregion
 
         #region Helper methods

@@ -587,6 +587,7 @@ namespace COP_v1.Chart
         {
             var line = _bot.Chart.DrawHorizontalLine(id, price, color, PanelStyles.LineThickness, LineStyle.Solid);
             line.IsInteractive = interactive;
+            line.ZIndex = PanelStyles.ChartTradingLineZIndex;
         }
 
         /// <summary>
@@ -600,6 +601,8 @@ namespace COP_v1.Chart
             var chartText = _bot.Chart.DrawText(textId, text, anchor, price, color);
             chartText.HorizontalAlignment = HorizontalAlignment.Right;
             chartText.VerticalAlignment = VerticalAlignment.Bottom;
+            chartText.IsInteractive = false;
+            chartText.ZIndex = PanelStyles.ChartTradingLabelZIndex;
         }
 
         /// <summary>

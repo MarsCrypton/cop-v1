@@ -97,6 +97,10 @@
 - `SlLineId`, `SlTextId` — Stop Loss.
 - `Tp1LineId` … `Tp3LineId` и соответствующие `Tp*TextId` — Take Profit (до трёх уровней).
 
+### ZIndex линий и подписей (MAR-78)
+
+Константы в `PanelStyles`: `ChartTradingLineZIndex`, `ChartTradingLabelZIndex`. При `DrawHorizontalLine` / `DrawText` в `ChartLineManager` и в `FastOrderHandler` выставляются высокие значения `ZIndex`, чтобы линии COP были **поверх** типичных пользовательских фигур на графике; у подписей `IsInteractive = false`. Подробнее — `updates/chart-lines-z-index-front/IMPLEMENTATION.md`.
+
 ### События
 
 | Событие | Описание |
