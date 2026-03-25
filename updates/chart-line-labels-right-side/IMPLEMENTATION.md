@@ -32,7 +32,7 @@
 | --------- | ------------------------------------------------------------------------------------------------------ |
 | **Entry** | Лоты **Market** или **Limit** (как сейчас по логике: `_lastVolumeLots` в тексте).                      |
 | **SL**    | Информация о **стопе** (сейчас в `RecalculateAll` в подпись идёт только **процент** через `StopText`). |
-| **TP**    | **RR** (сейчас в основную линию TP через `TpText` с `rr`).                                             |
+| **TP**    | Только метка **TP**, **RR** и **прибыль $** (цена уровня не дублируется в тексте — видна по линии). Подпись **над** линией (`VerticalAlignment.Bottom`). |
 
 
 ## Текущий код (отправная точка)
@@ -90,6 +90,8 @@
 ## Реализовано (2026-03-25, MAR-76)
 
 - **`ChartLineManager.DrawLineText`** и **`FastOrderHandler.DrawFastText`**: `HorizontalAlignment.Right`, якорь по-прежнему `GetLabelAnchorTime`.
-- **`StopText`**: два плейсхолдера `{0}` = процент риска, `{1}` = сумма в валюте счёта (`ChartLineManager.FormatRiskMoneyAccount`). Обновлены все вызовы в **`COP.RecalculateAll`**, **`HandleSlFieldChanged`**, **`ChartLineManager`** (первичная отрисовка / restore), **`FastOrderHandler`**.
+- **`StopText`**: префикс **`SL`** (не STOP); `{0}` = %, `{1}` = сумма как **`FormatChartMoneyDollar`** (`12.34 $`, без кода USD/EUR).
+- **`TpText`**: `TP RR {0} {1}` — **без цены в строке**; `{0}` = RR, `{1}` = прибыль (`FormatChartMoneyDollar`). Подписи линий: **`VerticalAlignment.Bottom`**, текст **над** линией.
+- **`MarketText`**: сокращение **`MKT`** (RU: **МКТ**).
 - Сборка `dotnet build` — без ошибок. Ручную проверку в cTrader (ТФ, fast order, 1–3 TP) выполняет автор.
 

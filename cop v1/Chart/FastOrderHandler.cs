@@ -128,8 +128,7 @@ namespace COP_v1.Chart
             _currentColor = PanelStyles.LineStopLoss;
 
             DrawFastLine(_currentLineId, _entryPrice, _currentColor);
-            DrawFastText(_currentTextId, _entryPrice, _currentColor,
-                Localization.Get("StopText", "0.00", ChartLineManager.FormatRiskMoneyAccount(_bot, 0)));
+            DrawFastText(_currentTextId, _entryPrice, _currentColor, ChartLineManager.InitialStopLineLabel());
 
             _bot.Chart.MouseMove += OnMouseMove;
             _bot.Chart.MouseDown += OnMouseDown;
@@ -217,8 +216,7 @@ namespace COP_v1.Chart
                 _currentColor = PanelStyles.LineStopLoss;
 
                 DrawFastLine(_currentLineId, clickPrice, _currentColor);
-                DrawFastText(_currentTextId, clickPrice, _currentColor,
-                    Localization.Get("StopText", "0.00", ChartLineManager.FormatRiskMoneyAccount(_bot, 0)));
+                DrawFastText(_currentTextId, clickPrice, _currentColor, ChartLineManager.InitialStopLineLabel());
 
                 _bot.Print("FastOrder: Entry fixed at {0} — step 2 (SL)", _entryPrice.ToString("F" + _bot.Symbol.Digits));
             }
@@ -233,7 +231,7 @@ namespace COP_v1.Chart
                 _currentColor = PanelStyles.LineTakeProfit;
 
                 DrawFastLine(_currentLineId, clickPrice, _currentColor);
-                DrawFastText(_currentTextId, clickPrice, _currentColor, Localization.Get("TpText", "0.0"));
+                DrawFastText(_currentTextId, clickPrice, _currentColor, ChartLineManager.InitialTpLineLabel());
 
                 _bot.Print("FastOrder: SL fixed at {0} — step 3 (TP1)", _slPrice.ToString("F" + _bot.Symbol.Digits));
             }
@@ -254,7 +252,7 @@ namespace COP_v1.Chart
                 _currentColor = PanelStyles.LineTakeProfit;
 
                 DrawFastLine(_currentLineId, clickPrice, _currentColor);
-                DrawFastText(_currentTextId, clickPrice, _currentColor, Localization.Get("TpText", "0.0"));
+                DrawFastText(_currentTextId, clickPrice, _currentColor, ChartLineManager.InitialTpLineLabel());
 
                 _bot.Print("FastOrder: TP1 fixed at {0} — step 4 (TP2)", _tp1Price.ToString("F" + _bot.Symbol.Digits));
             }
@@ -274,7 +272,7 @@ namespace COP_v1.Chart
                     _currentTextId = ChartLineManager.Tp3TextId;
                     _currentColor = PanelStyles.LineTakeProfit;
                     DrawFastLine(_currentLineId, clickPrice, _currentColor);
-                    DrawFastText(_currentTextId, clickPrice, _currentColor, Localization.Get("TpText", "0.0"));
+                    DrawFastText(_currentTextId, clickPrice, _currentColor, ChartLineManager.InitialTpLineLabel());
                     _bot.Print("FastOrder: TP2 fixed at {0} — step 5 (TP3)", _tp2Price.ToString("F" + _bot.Symbol.Digits));
                 }
             }
@@ -331,7 +329,7 @@ namespace COP_v1.Chart
                 double slDollars, slPercent;
                 _riskCalculator.CalculateLoss(entry, cursorPrice, vol, out slDollars, out slPercent);
                 text = Localization.Get("StopText", slPercent.ToString("F2"),
-                    ChartLineManager.FormatRiskMoneyAccount(_bot, slDollars));
+                    ChartLineManager.FormatChartMoneyDollar(slDollars));
 
                 // Обновить текст на Entry-линии с актуальным объёмом
                 string entryTextKey = _isMarketMode ? "MarketText" : "LimitText";
@@ -354,10 +352,16 @@ namespace COP_v1.Chart
             }
             else if (_step >= 3 && _step <= 5)
             {
-                // TP1/TP2/TP3 — показать RR
+                // TP1/TP2/TP3 — RR и прибыль в $ (уровень цены по линии)
                 double entry = _isMarketMode ? _bot.Symbol.Bid : _entryPrice;
+                var (mode, riskText) = _getRiskInput();
+                double vol = GetVolumeForFastDisplay(entry, _slPrice, mode, riskText);
+                double tpDollars, tpPercent;
+                _riskCalculator.CalculateProfit(entry, cursorPrice, vol, out tpDollars, out tpPercent);
                 double rr = _riskCalculator.CalculateRR(entry, _slPrice, cursorPrice);
-                text = Localization.Get("TpText", rr.ToString("F1"));
+                text = Localization.Get("TpText",
+                    rr.ToString("F1"),
+                    ChartLineManager.FormatChartMoneyDollar(tpDollars));
             }
 
             // Обновить текст
@@ -418,7 +422,7 @@ namespace COP_v1.Chart
             DateTime anchor = ChartLineManager.GetLabelAnchorTime(_bot);
             var chartText = _bot.Chart.DrawText(textId, text, anchor, price, color);
             chartText.HorizontalAlignment = HorizontalAlignment.Right;
-            chartText.VerticalAlignment = VerticalAlignment.Center;
+            chartText.VerticalAlignment = VerticalAlignment.Bottom;
         }
 
         #endregion

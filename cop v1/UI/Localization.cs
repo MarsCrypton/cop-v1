@@ -250,27 +250,27 @@ namespace COP_v1.UI
             // --- Тексты на линиях графика (с параметрами) ---
             ["StopText"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "STOP {0}% · {1}",
-                [Language.RU] = "STOP {0}% · {1}",
-                [Language.DE] = "STOP {0}% · {1}",
-                [Language.FR] = "STOP {0}% · {1}",
-                [Language.ES] = "STOP {0}% · {1}",
-                [Language.IT] = "STOP {0}% · {1}",
-                [Language.PL] = "STOP {0}% · {1}",
-                [Language.NL] = "STOP {0}% · {1}",
-                [Language.PT] = "STOP {0}% · {1}"
+                [Language.EN] = "SL {0}% · {1}",
+                [Language.RU] = "SL {0}% · {1}",
+                [Language.DE] = "SL {0}% · {1}",
+                [Language.FR] = "SL {0}% · {1}",
+                [Language.ES] = "SL {0}% · {1}",
+                [Language.IT] = "SL {0}% · {1}",
+                [Language.PL] = "SL {0}% · {1}",
+                [Language.NL] = "SL {0}% · {1}",
+                [Language.PT] = "SL {0}% · {1}"
             },
             ["TpText"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "TP (RR {0})",
-                [Language.RU] = "TP (RR {0})",
-                [Language.DE] = "TP (RR {0})",
-                [Language.FR] = "TP (RR {0})",
-                [Language.ES] = "TP (RR {0})",
-                [Language.IT] = "TP (RR {0})",
-                [Language.PL] = "TP (RR {0})",
-                [Language.NL] = "TP (RR {0})",
-                [Language.PT] = "TP (RR {0})"
+                [Language.EN] = "TP RR {0} {1}",
+                [Language.RU] = "TP RR {0} {1}",
+                [Language.DE] = "TP RR {0} {1}",
+                [Language.FR] = "TP RR {0} {1}",
+                [Language.ES] = "TP RR {0} {1}",
+                [Language.IT] = "TP RR {0} {1}",
+                [Language.PL] = "TP RR {0} {1}",
+                [Language.NL] = "TP RR {0} {1}",
+                [Language.PT] = "TP RR {0} {1}"
             },
             ["LimitText"] = new Dictionary<Language, string>
             {
@@ -286,15 +286,15 @@ namespace COP_v1.UI
             },
             ["MarketText"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "MARKET {0} lot",
-                [Language.RU] = "MARKET {0} лот",
-                [Language.DE] = "MARKET {0} Lot",
-                [Language.FR] = "MARKET {0} lot",
-                [Language.ES] = "MARKET {0} lote",
-                [Language.IT] = "MARKET {0} lotto",
-                [Language.PL] = "MARKET {0} lot",
-                [Language.NL] = "MARKET {0} lot",
-                [Language.PT] = "MARKET {0} lote"
+                [Language.EN] = "MKT {0} lot",
+                [Language.RU] = "МКТ {0} лот",
+                [Language.DE] = "MKT {0} Lot",
+                [Language.FR] = "MKT {0} lot",
+                [Language.ES] = "MKT {0} lote",
+                [Language.IT] = "MKT {0} lot",
+                [Language.PL] = "MKT {0} lot",
+                [Language.NL] = "MKT {0} lot",
+                [Language.PT] = "MKT {0} lote"
             },
 
             // --- Панель настроек ---

@@ -310,12 +310,14 @@ namespace COP_v1
                 ChartLineManager.SlTextId,
                 slPrice,
                 Localization.Get("StopText", slPercent.ToString("F2"),
-                    ChartLineManager.FormatRiskMoneyAccount(this, slDollars)));
+                    ChartLineManager.FormatChartMoneyDollar(slDollars)));
 
             _chartLineManager.UpdateLineTextPosition(
                 _chartLineManager.MainTpTextId,
                 tpPrice,
-                Localization.Get("TpText", rr.ToString("F1")));
+                Localization.Get("TpText",
+                    rr.ToString("F1"),
+                    ChartLineManager.FormatChartMoneyDollar(tpDollars)));
         }
 
         /// <summary>
@@ -1005,7 +1007,7 @@ namespace COP_v1
                 _chartLineManager.UpdateLineTextPosition(
                     ChartLineManager.SlTextId,
                     price,
-                    Localization.Get("StopText", "0.00", ChartLineManager.FormatRiskMoneyAccount(this, 0)));
+                    ChartLineManager.InitialStopLineLabel());
                 RecalculateAll();
             }
         }
@@ -1026,7 +1028,7 @@ namespace COP_v1
                 _chartLineManager.UpdateLineTextPosition(
                     _chartLineManager.MainTpTextId,
                     price,
-                    Localization.Get("TpText", "0.0"));
+                    ChartLineManager.InitialTpLineLabel());
                 RecalculateAll();
             }
         }
