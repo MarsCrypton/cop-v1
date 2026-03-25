@@ -81,15 +81,6 @@ namespace COP_v1.Chart
         }
 
         /// <summary>
-        /// Проверка и восстановление линий/подписей из кэша цен.
-        /// Вызывать из OnTick: события Chart.DisplaySettingsChanged / ChartTypeChanged на части сборок cTrader не срабатывают при смене ТФ.
-        /// </summary>
-        public void RepairTradingLinesIfNeeded()
-        {
-            TryRestoreTradingDrawings();
-        }
-
-        /// <summary>
         /// Колбэки из COP: когда показывать торговые линии, Limit vs Market, число TP, что вызвать после восстановления.
         /// </summary>
         public void ConfigureRedrawSupport(
@@ -220,10 +211,9 @@ namespace COP_v1.Chart
         /// <summary>Рисует все линии и подписи по текущему кэшу _entryPrice / _slPrice / _tp* / _tpCount.</summary>
         private void PaintTradingLinesFromCache(bool limitEntryInteractive)
         {
-            bool limit = limitEntryInteractive;
-            DrawLine(EntryLineId, _entryPrice, PanelStyles.LineEntry, interactive: limit);
+            DrawLine(EntryLineId, _entryPrice, PanelStyles.LineEntry, interactive: limitEntryInteractive);
             DrawLineText(EntryTextId, _entryPrice, PanelStyles.LineEntry,
-                Localization.Get(limit ? "LimitText" : "MarketText", "0.00"));
+                Localization.Get(limitEntryInteractive ? "LimitText" : "MarketText", "0.00"));
 
             DrawLine(SlLineId, _slPrice, PanelStyles.LineStopLoss);
             DrawLineText(SlTextId, _slPrice, PanelStyles.LineStopLoss, Localization.Get("StopText", "0.00"));
@@ -359,12 +349,12 @@ namespace COP_v1.Chart
 
         private void Chart_DisplaySettingsChanged(ChartDisplaySettingsEventArgs args)
         {
-            TryRestoreTradingDrawings();
+            RepairTradingLinesIfNeeded();
         }
 
         private void Chart_ChartTypeChanged(ChartTypeEventArgs args)
         {
-            TryRestoreTradingDrawings();
+            RepairTradingLinesIfNeeded();
         }
 
         private void Chart_ObjectsRemoved(ChartObjectsRemovedEventArgs args)
@@ -373,7 +363,7 @@ namespace COP_v1.Chart
                 return;
             if (!RemovedArgsContainsOurDrawing(args))
                 return;
-            TryRestoreTradingDrawings();
+            RepairTradingLinesIfNeeded();
         }
 
         private static bool RemovedArgsContainsOurDrawing(ChartObjectsRemovedEventArgs args)
@@ -395,7 +385,11 @@ namespace COP_v1.Chart
             return false;
         }
 
-        private void TryRestoreTradingDrawings()
+        /// <summary>
+        /// Восстанавливает отсутствующие линии/подписи из кэша цен (тот же экземпляр cBot).
+        /// События графика + вызов из OnTick: на части сборок при перерисовке объекты исчезают без <c>OnStop</c>.
+        /// </summary>
+        public void RepairTradingLinesIfNeeded()
         {
             if (_suppressLineEvents)
                 return;

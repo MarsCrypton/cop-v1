@@ -158,7 +158,7 @@ namespace COP_v1
                 _mainPanel.UpdateSpread(spreadPips);
             }
 
-            // MAR-49: смена ТФ часто не даёт DisplaySettingsChanged на cBot — восстанавливаем линии на каждом тике, если режим активен.
+            // MAR-49: перезапуск (смена ТФ) — уровни из LocalStorage в OnStart; здесь тот же экземпляр: объекты могли исчезнуть без OnStop, событие графика не всегда приходит.
             if (_chartLineManager != null && _isLimitMode != null && !_fastOrderHandler.IsActive)
                 _chartLineManager.RepairTradingLinesIfNeeded();
 
@@ -577,7 +577,6 @@ namespace COP_v1
                     _mainPanel.UpdateMarketPrice(Symbol.Bid, Symbol.Ask, Symbol.Digits);
 
                 RecalculateAll();
-                Print("COP: chart levels restored from LocalStorage (instance restarted, e.g. timeframe change).");
             }
             catch
             {
