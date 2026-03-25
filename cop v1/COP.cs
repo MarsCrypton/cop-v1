@@ -309,7 +309,8 @@ namespace COP_v1
             _chartLineManager.UpdateLineTextPosition(
                 ChartLineManager.SlTextId,
                 slPrice,
-                Localization.Get("StopText", slPercent.ToString("F2")));
+                Localization.Get("StopText", slPercent.ToString("F2"),
+                    ChartLineManager.FormatRiskMoneyAccount(this, slDollars)));
 
             _chartLineManager.UpdateLineTextPosition(
                 _chartLineManager.MainTpTextId,
@@ -1004,7 +1005,7 @@ namespace COP_v1
                 _chartLineManager.UpdateLineTextPosition(
                     ChartLineManager.SlTextId,
                     price,
-                    Localization.Get("StopText", "0.00"));
+                    Localization.Get("StopText", "0.00", ChartLineManager.FormatRiskMoneyAccount(this, 0)));
                 RecalculateAll();
             }
         }

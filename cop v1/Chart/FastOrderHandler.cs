@@ -128,7 +128,8 @@ namespace COP_v1.Chart
             _currentColor = PanelStyles.LineStopLoss;
 
             DrawFastLine(_currentLineId, _entryPrice, _currentColor);
-            DrawFastText(_currentTextId, _entryPrice, _currentColor, Localization.Get("StopText", "0.00"));
+            DrawFastText(_currentTextId, _entryPrice, _currentColor,
+                Localization.Get("StopText", "0.00", ChartLineManager.FormatRiskMoneyAccount(_bot, 0)));
 
             _bot.Chart.MouseMove += OnMouseMove;
             _bot.Chart.MouseDown += OnMouseDown;
@@ -216,7 +217,8 @@ namespace COP_v1.Chart
                 _currentColor = PanelStyles.LineStopLoss;
 
                 DrawFastLine(_currentLineId, clickPrice, _currentColor);
-                DrawFastText(_currentTextId, clickPrice, _currentColor, Localization.Get("StopText", "0.00"));
+                DrawFastText(_currentTextId, clickPrice, _currentColor,
+                    Localization.Get("StopText", "0.00", ChartLineManager.FormatRiskMoneyAccount(_bot, 0)));
 
                 _bot.Print("FastOrder: Entry fixed at {0} — step 2 (SL)", _entryPrice.ToString("F" + _bot.Symbol.Digits));
             }
@@ -328,7 +330,8 @@ namespace COP_v1.Chart
                 double lots = _riskCalculator.ToLots(vol);
                 double slDollars, slPercent;
                 _riskCalculator.CalculateLoss(entry, cursorPrice, vol, out slDollars, out slPercent);
-                text = Localization.Get("StopText", slPercent.ToString("F2"));
+                text = Localization.Get("StopText", slPercent.ToString("F2"),
+                    ChartLineManager.FormatRiskMoneyAccount(_bot, slDollars));
 
                 // Обновить текст на Entry-линии с актуальным объёмом
                 string entryTextKey = _isMarketMode ? "MarketText" : "LimitText";
@@ -414,7 +417,7 @@ namespace COP_v1.Chart
         {
             DateTime anchor = ChartLineManager.GetLabelAnchorTime(_bot);
             var chartText = _bot.Chart.DrawText(textId, text, anchor, price, color);
-            chartText.HorizontalAlignment = HorizontalAlignment.Left;
+            chartText.HorizontalAlignment = HorizontalAlignment.Right;
             chartText.VerticalAlignment = VerticalAlignment.Center;
         }
 

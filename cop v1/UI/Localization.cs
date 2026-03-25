@@ -250,15 +250,15 @@ namespace COP_v1.UI
             // --- Тексты на линиях графика (с параметрами) ---
             ["StopText"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "STOP {0}%",
-                [Language.RU] = "STOP {0}%",
-                [Language.DE] = "STOP {0}%",
-                [Language.FR] = "STOP {0}%",
-                [Language.ES] = "STOP {0}%",
-                [Language.IT] = "STOP {0}%",
-                [Language.PL] = "STOP {0}%",
-                [Language.NL] = "STOP {0}%",
-                [Language.PT] = "STOP {0}%"
+                [Language.EN] = "STOP {0}% · {1}",
+                [Language.RU] = "STOP {0}% · {1}",
+                [Language.DE] = "STOP {0}% · {1}",
+                [Language.FR] = "STOP {0}% · {1}",
+                [Language.ES] = "STOP {0}% · {1}",
+                [Language.IT] = "STOP {0}% · {1}",
+                [Language.PL] = "STOP {0}% · {1}",
+                [Language.NL] = "STOP {0}% · {1}",
+                [Language.PT] = "STOP {0}% · {1}"
             },
             ["TpText"] = new Dictionary<Language, string>
             {

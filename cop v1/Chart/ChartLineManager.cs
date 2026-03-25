@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using cAlgo.API;
 using COP_v1.UI;
 
@@ -78,6 +79,18 @@ namespace COP_v1.Chart
             }
 
             return bot.Server.Time;
+        }
+
+        /// <summary>
+        /// Сумма риска для подписи на линии SL («число» + код валюты счёта).
+        /// </summary>
+        public static string FormatRiskMoneyAccount(Robot bot, double amount)
+        {
+            string num = amount.ToString("F2", CultureInfo.InvariantCulture);
+            if (bot?.Account?.Asset == null)
+                return num;
+            string code = bot.Account.Asset.Name;
+            return string.IsNullOrEmpty(code) ? num : $"{num} {code}";
         }
 
         /// <summary>
@@ -216,7 +229,8 @@ namespace COP_v1.Chart
                 Localization.Get(limitEntryInteractive ? "LimitText" : "MarketText", "0.00"));
 
             DrawLine(SlLineId, _slPrice, PanelStyles.LineStopLoss);
-            DrawLineText(SlTextId, _slPrice, PanelStyles.LineStopLoss, Localization.Get("StopText", "0.00"));
+            DrawLineText(SlTextId, _slPrice, PanelStyles.LineStopLoss,
+                Localization.Get("StopText", "0.00", FormatRiskMoneyAccount(_bot, 0)));
 
             DrawLine(Tp1LineId, _tp1Price, PanelStyles.LineTakeProfit);
             DrawLineText(Tp1TextId, _tp1Price, PanelStyles.LineTakeProfit, Localization.Get("TpText", "0.0"));
@@ -444,7 +458,8 @@ namespace COP_v1.Chart
 
                 EnsureText(EntryTextId, _entryPrice, PanelStyles.LineEntry,
                     Localization.Get(limit ? "LimitText" : "MarketText", "0.00"));
-                EnsureText(SlTextId, _slPrice, PanelStyles.LineStopLoss, Localization.Get("StopText", "0.00"));
+                EnsureText(SlTextId, _slPrice, PanelStyles.LineStopLoss,
+                    Localization.Get("StopText", "0.00", FormatRiskMoneyAccount(_bot, 0)));
                 EnsureText(Tp1TextId, _tp1Price, PanelStyles.LineTakeProfit, Localization.Get("TpText", "0.0"));
 
                 if (n >= 2)
@@ -566,13 +581,14 @@ namespace COP_v1.Chart
         }
 
         /// <summary>
-        /// Подпись у времени последнего бара (не по индексу бара) — устойчиво к смене ТФ / типа графика.
+        /// Подпись у времени последнего видимого бара (не по индексу бара) — устойчиво к смене ТФ / типа графика.
+        /// Правый край текста в точке якоря (Right), тело уходит влево к свечам — колонка у правого края области.
         /// </summary>
         private void DrawLineText(string textId, double price, Color color, string text)
         {
             DateTime anchor = GetLabelAnchorTime(_bot);
             var chartText = _bot.Chart.DrawText(textId, text, anchor, price, color);
-            chartText.HorizontalAlignment = HorizontalAlignment.Left;
+            chartText.HorizontalAlignment = HorizontalAlignment.Right;
             chartText.VerticalAlignment = VerticalAlignment.Center;
         }
 

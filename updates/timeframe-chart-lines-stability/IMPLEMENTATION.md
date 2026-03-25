@@ -27,7 +27,7 @@
 
 - `Chart.DrawText(..., barIndex, y, ...)` заменён на **`DrawText(..., DateTime time, y, ...)`**.
 - Время якоря: **`Bars.OpenTimes[Chart.LastVisibleBarIndex]`** (если индекс в диапазоне), иначе последний бар серии, иначе **`Server.Time`** — **`ChartLineManager.GetLabelAnchorTime(Robot)`** (и **`FastOrderHandler.DrawFastText`**).
-- У `ChartText` выставлены **`HorizontalAlignment.Left`**, **`VerticalAlignment.Center`** (читаемость справа от якоря).
+- У `ChartText` выставлены **`VerticalAlignment.Center`**. Горизонтальное выравнивание: см. **MAR-76** — сейчас **`HorizontalAlignment.Right`** (колонка подписей у правого края видимой области); ранее было `Left`.
 
 См. также: [Chart objects: bar index or time](https://help.ctrader.com/ctrader-algo/guides/ui-operations/chart-objects?q=).
 
