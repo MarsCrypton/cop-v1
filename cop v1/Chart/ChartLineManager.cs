@@ -43,7 +43,6 @@ namespace COP_v1.Chart
 
         private Func<bool> _tradingLinesVisible;
         private Func<bool> _isLimitMode;
-        private Func<int> _tpCountProvider;
         private Action _afterRestore;
 
         /// <summary>
@@ -61,12 +60,15 @@ namespace COP_v1.Chart
         }
 
         /// <summary>
-        /// Время по оси X для подписей у последнего бара (устойчиво к смене ТФ в отличие от индекса бара).
+        /// Время по оси X для подписей: последний видимый бар (ближе к правому краю), иначе последний бар серии.
         /// </summary>
         public static DateTime GetLabelAnchorTime(Robot bot)
         {
             try
             {
+                int vis = bot.Chart.LastVisibleBarIndex;
+                if (vis >= 0 && vis < bot.Bars.Count)
+                    return bot.Bars.OpenTimes[vis];
                 if (bot.Bars.Count > 0)
                     return bot.Bars.OpenTimes[bot.Bars.Count - 1];
             }
@@ -79,17 +81,24 @@ namespace COP_v1.Chart
         }
 
         /// <summary>
+        /// Проверка и восстановление линий/подписей из кэша цен.
+        /// Вызывать из OnTick: события Chart.DisplaySettingsChanged / ChartTypeChanged на части сборок cTrader не срабатывают при смене ТФ.
+        /// </summary>
+        public void RepairTradingLinesIfNeeded()
+        {
+            TryRestoreTradingDrawings();
+        }
+
+        /// <summary>
         /// Колбэки из COP: когда показывать торговые линии, Limit vs Market, число TP, что вызвать после восстановления.
         /// </summary>
         public void ConfigureRedrawSupport(
             Func<bool> tradingLinesVisible,
             Func<bool> isLimitMode,
-            Func<int> tpCountProvider,
             Action afterRestore)
         {
             _tradingLinesVisible = tradingLinesVisible;
             _isLimitMode = isLimitMode;
-            _tpCountProvider = tpCountProvider;
             _afterRestore = afterRestore;
         }
 
@@ -282,12 +291,21 @@ namespace COP_v1.Chart
         /// </summary>
         public void UpdateLineTextPosition(string textId, double price, string text)
         {
-            // Проще всего — удалить и перерисовать текст
             var textObj = _bot.Chart.FindObject(textId) as ChartText;
             if (textObj != null)
             {
                 Color color = textObj.Color;
                 _bot.Chart.RemoveObject(textId);
+                DrawLineText(textId, price, color, text);
+            }
+            else if (price > 0 && !double.IsNaN(price) && !double.IsInfinity(price))
+            {
+                // Подпись снята платформой — пересоздать с тем же стилем, что при Show*Lines
+                Color color = PanelStyles.LineEntry;
+                if (textId == SlTextId)
+                    color = PanelStyles.LineStopLoss;
+                else if (textId == Tp1TextId || textId == Tp2TextId || textId == Tp3TextId)
+                    color = PanelStyles.LineTakeProfit;
                 DrawLineText(textId, price, color, text);
             }
         }
@@ -381,9 +399,9 @@ namespace COP_v1.Chart
             if (_tradingLinesVisible == null || !_tradingLinesVisible())
                 return;
 
-            int n = _tpCountProvider != null
-                ? Math.Max(1, Math.Min(3, _tpCountProvider()))
-                : _tpCount;
+            // Число тейков — как при последнем Show*Lines (_tpCount), а не только с панели:
+            // иначе при расхождении Ensure* пропускает линии из‑за price==0 в кэше.
+            int n = Math.Max(1, Math.Min(3, _tpCount));
 
             bool limit = _isLimitMode != null && _isLimitMode();
 
@@ -413,6 +431,8 @@ namespace COP_v1.Chart
 
         private void RestoreTradingDrawingsFromCache(bool limit, int n)
         {
+            EnsureValidCachedPricesForRestore(limit, n);
+
             _suppressLineEvents = true;
             try
             {
@@ -447,7 +467,7 @@ namespace COP_v1.Chart
         {
             if (_bot.Chart.FindObject(id) != null)
                 return;
-            if (price <= 0 || double.IsNaN(price) || double.IsInfinity(price))
+            if (double.IsNaN(price) || double.IsInfinity(price) || price <= 0)
                 return;
             DrawLine(id, price, color, interactive);
         }
@@ -456,9 +476,56 @@ namespace COP_v1.Chart
         {
             if (_bot.Chart.FindObject(textId) != null)
                 return;
-            if (price <= 0 || double.IsNaN(price) || double.IsInfinity(price))
+            if (double.IsNaN(price) || double.IsInfinity(price) || price <= 0)
                 return;
             DrawLineText(textId, price, color, text);
+        }
+
+        /// <summary>
+        /// Если после смены ТФ кэш цен обнулился или невалиден — подставить уровни из видимой области (как при первом Show).
+        /// </summary>
+        private void EnsureValidCachedPricesForRestore(bool limit, int n)
+        {
+            CalculateInitialPrices(out double calcEntry, out double calcSl, out double calcTp);
+            double bid = _bot.Symbol.Bid;
+            if (bid > 0 && (!limit))
+            {
+                if (_entryPrice <= 0 || double.IsNaN(_entryPrice) || double.IsInfinity(_entryPrice))
+                    _entryPrice = bid;
+            }
+            else
+            {
+                if (_entryPrice <= 0 || double.IsNaN(_entryPrice) || double.IsInfinity(_entryPrice))
+                    _entryPrice = calcEntry;
+            }
+
+            if (_slPrice <= 0 || double.IsNaN(_slPrice) || double.IsInfinity(_slPrice))
+                _slPrice = calcSl;
+
+            if (n == 1)
+            {
+                if (_tp1Price <= 0 || double.IsNaN(_tp1Price) || double.IsInfinity(_tp1Price))
+                    _tp1Price = calcTp;
+                return;
+            }
+
+            if (n == 2)
+            {
+                if (_tp2Price <= 0 || double.IsNaN(_tp2Price) || double.IsInfinity(_tp2Price))
+                    _tp2Price = calcTp;
+                if (_tp1Price <= 0 || double.IsNaN(_tp1Price) || double.IsInfinity(_tp1Price))
+                    _tp1Price = (_entryPrice + _tp2Price) / 2.0;
+                return;
+            }
+
+            // n == 3
+            if (_tp3Price <= 0 || double.IsNaN(_tp3Price) || double.IsInfinity(_tp3Price))
+                _tp3Price = calcTp;
+            double step = (_tp3Price - _entryPrice) / 3.0;
+            if (_tp1Price <= 0 || double.IsNaN(_tp1Price) || double.IsInfinity(_tp1Price))
+                _tp1Price = _entryPrice + step;
+            if (_tp2Price <= 0 || double.IsNaN(_tp2Price) || double.IsInfinity(_tp2Price))
+                _tp2Price = _entryPrice + step * 2.0;
         }
 
         #endregion

@@ -20,7 +20,7 @@
 ### 1. Подписи по времени, не по индексу бара
 
 - `Chart.DrawText(..., barIndex, y, ...)` заменён на **`DrawText(..., DateTime time, y, ...)`**.
-- Время якоря: **`Bars.OpenTimes[Bars.Count - 1]`**, иначе **`Server.Time`** — статический хелпер **`ChartLineManager.GetLabelAnchorTime(Robot)`** (используется и в **`FastOrderHandler.DrawFastText`**).
+- Время якоря: **`Bars.OpenTimes[Chart.LastVisibleBarIndex]`** (если индекс в диапазоне), иначе последний бар серии, иначе **`Server.Time`** — **`ChartLineManager.GetLabelAnchorTime(Robot)`** (и **`FastOrderHandler.DrawFastText`**).
 - У `ChartText` выставлены **`HorizontalAlignment.Left`**, **`VerticalAlignment.Center`** (читаемость справа от якоря).
 
 См. также: [Chart objects: bar index or time](https://help.ctrader.com/ctrader-algo/guides/ui-operations/chart-objects?q=).
@@ -38,7 +38,10 @@
 Логика **`TryRestoreTradingDrawings`**:
 
 - Работает только если **`ConfigureRedrawSupport`** из **`COP`** сообщает: обычный режим с линиями (`_isLimitMode != null`) и **не** активен Fast Order.
-- Если не хватает линий или текстов (по текущему **`TpCount`** с панели) — **`RestoreTradingDrawingsFromCache`**: пересоздаёт только **отсутствующие** объекты с ценами из внутреннего кэша (**без** пересчёта уровней из `TopY`/`BottomY`).
+- Если не хватает линий или текстов — по внутреннему **`_tpCount`** (как при последнем **`ShowLimitLines` / `ShowMarketLines`**), не по комбо панели: иначе при расхождении **`Ensure*`** не рисовал линию при **`price == 0`** в кэше.
+- **`RestoreTradingDrawingsFromCache`** сначала **`EnsureValidCachedPricesForRestore`**: подставляет уровни из **`CalculateInitialPrices`**, если кэш обнулён/битой после смены ТФ.
+- Публичный **`RepairTradingLinesIfNeeded()`** вызывается из **`COP.OnTick`** при активном Limit/Market (без Fast Order): на части сборок **`DisplaySettingsChanged` не приходит** при смене ТФ с UI, Limit-режим раньше вообще не заходил в ветку восстановления.
+- **`UpdateLineTextPosition`**: если **`ChartText`** уже снят платформой, подпись **пересоздаётся** по цвету ID (Entry / SL / TP).
 - После восстановления вызывается колбэк **`afterRestore`** → **`RecalculateAll()`** в **`COP`**.
 
 ### 3. Защита от каскада `ObjectsUpdated`

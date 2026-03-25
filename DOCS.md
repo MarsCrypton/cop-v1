@@ -34,8 +34,8 @@
 
 | Метод | Описание |
 |-------|----------|
-| `OnStart()` | Инициализация: локализация, создание панели и менеджеров (ChartLineManager, RiskCalculator, OrderManager, FastOrderHandler), **`ChartLineManager.ConfigureRedrawSupport`** (MAR-49: восстановление линий после смены ТФ/типа графика), подписка на события панели и линий. |
-| `OnTick()` | Обновление спреда на панели; в Market-режиме — обновление цены, линии Entry и вызов RecalculateAll(). |
+| `OnStart()` | Инициализация: локализация, создание панели и менеджеров (ChartLineManager, RiskCalculator, OrderManager, FastOrderHandler), **`ChartLineManager.ConfigureRedrawSupport`**, подписка на события панели и линий. |
+| `OnTick()` | Обновление спреда; **MAR-49:** `RepairTradingLinesIfNeeded()` при активном Limit/Market (без Fast Order); в Market-режиме — обновление цены, линии Entry и `RecalculateAll()`. |
 | `OnStop()` | Отписка от событий, удаление линий с графика, отписка FastOrderHandler. |
 
 ### Внутренние методы (Core logic)
@@ -119,7 +119,8 @@
 | Метод | Описание |
 |-------|----------|
 | `GetLabelAnchorTime(Robot bot)` | Статический: время последнего бара `Bars.OpenTimes` или `Server.Time` — якорь X для подписей (устойчиво к смене ТФ). |
-| `ConfigureRedrawSupport(...)` | Задаёт из COP: когда торговые линии должны быть на графике, Limit vs Market, `TpCount`, колбэк после восстановления (обычно `RecalculateAll`). |
+| `ConfigureRedrawSupport(...)` | Задаёт из COP: когда торговые линии должны быть на графике, Limit vs Market, колбэк после восстановления (обычно `RecalculateAll`). Число тейков при восстановлении берётся из внутреннего `_tpCount` менеджера (как при последнем `Show*Lines`). |
+| `RepairTradingLinesIfNeeded()` | Публичный вызов той же логики, что и обработчики смены ТФ: досоздать отсутствующие линии/тексты из кэша; вызывается из `OnTick`. |
 | `ChartLineManager(Robot bot)` | Конструктор. Подписка на `ObjectsUpdated`, `DisplaySettingsChanged`, `ChartTypeChanged`, `ObjectsRemoved`. |
 | `ShowLimitLines(int tpCount)` | Удаляет старые линии, вычисляет начальные цены по видимой области, рисует Entry/SL/TP с подписями. |
 | `ShowMarketLines(int tpCount)` | Entry = Bid, линия Entry неинтерактивная; SL/TP интерактивные. |

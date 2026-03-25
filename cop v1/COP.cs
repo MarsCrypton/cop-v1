@@ -123,7 +123,6 @@ namespace COP_v1
             _chartLineManager.ConfigureRedrawSupport(
                 () => _isLimitMode != null && !_fastOrderHandler.IsActive,
                 () => _isLimitMode == true,
-                () => _mainPanel.TpCount,
                 () =>
                 {
                     if (_isLimitMode != null && !_fastOrderHandler.IsActive)
@@ -156,6 +155,10 @@ namespace COP_v1
                 double spreadPips = Symbol.Spread / Symbol.PipSize;
                 _mainPanel.UpdateSpread(spreadPips);
             }
+
+            // MAR-49: смена ТФ часто не даёт DisplaySettingsChanged на cBot — восстанавливаем линии на каждом тике, если режим активен.
+            if (_chartLineManager != null && _isLimitMode != null && !_fastOrderHandler.IsActive)
+                _chartLineManager.RepairTradingLinesIfNeeded();
 
             // Если Market-режим активен — обновить текущую цену, линию и пересчитать
             if (_isLimitMode == false && _chartLineManager.HasAnyLines)
