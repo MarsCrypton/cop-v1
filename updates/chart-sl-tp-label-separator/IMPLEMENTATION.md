@@ -18,3 +18,9 @@
 ## Альтернатива
 
 При желании тот же символ можно заменить на тире, например **en-dash** ` – `, в обоих ключах `StopText` и `TpText` единообразно.
+
+## Релиз (задача закрыта)
+
+- **Код:** коммит `fix: TP chart label middle dot between RR and dollars (match SL)` — `TpText` для всех языков в `Localization.cs`.
+- **Документация репозитория:** раздел **9. Localization.cs** в `DOCS.md` — форматы `StopText` / `TpText` и ссылка на этот файл.
+- **Ветка:** изменения в `main`, после `git push origin main` синхронизированы с `origin`.

@@ -321,3 +321,5 @@
 | `Get(string key, params object[] args)` | То же с подстановкой аргументов (string.Format). |
 
 Ключи включают: PanelTitle, FastOrder, Spread, Limit, Market, MaxRisk, LimitOrder, MarketOrder, StopLoss, TakeProfit, PlaceOrder, InvalidLevels, LimitLong, LimitShort, BuyMarket, SellMarket, StopText, TpText, LimitText, MarketText.
+
+**Подписи на линиях SL / TP (график):** `StopText` — шаблон `SL {0}% · {1}` (`{0}` — процент убытка, `{1}` — сумма через `ChartLineManager.FormatChartMoneyDollar`). `TpText` — `TP RR {0} · {1}` (`{0}` — RR, `{1}` — прибыль в $). Средняя точка **`·`** (U+00B7) единообразно отделяет первую величину от суммы. Подробнее: `updates/chart-sl-tp-label-separator/IMPLEMENTATION.md`.
