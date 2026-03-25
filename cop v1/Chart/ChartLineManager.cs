@@ -8,6 +8,7 @@ namespace COP_v1.Chart
     /// Управление виртуальными линиями на графике (Entry, Stop Loss, Take Profit).
     /// Рисует интерактивные горизонтальные линии с текстовыми подписями.
     /// Отслеживает перетаскивание и уведомляет через событие OnLinesChanged.
+    /// Восстанавливает объекты после смены ТФ / типа графика (MAR-49).
     /// </summary>
     public class ChartLineManager
     {
@@ -38,6 +39,13 @@ namespace COP_v1.Chart
         private double _tp3Price;
         private int _tpCount = 2;
 
+        private bool _suppressLineEvents;
+
+        private Func<bool> _tradingLinesVisible;
+        private Func<bool> _isLimitMode;
+        private Func<int> _tpCountProvider;
+        private Action _afterRestore;
+
         /// <summary>
         /// Вызывается при перетаскивании любой из наших линий.
         /// </summary>
@@ -47,6 +55,42 @@ namespace COP_v1.Chart
         {
             _bot = bot;
             _bot.Chart.ObjectsUpdated += Chart_ObjectsUpdated;
+            _bot.Chart.DisplaySettingsChanged += Chart_DisplaySettingsChanged;
+            _bot.Chart.ChartTypeChanged += Chart_ChartTypeChanged;
+            _bot.Chart.ObjectsRemoved += Chart_ObjectsRemoved;
+        }
+
+        /// <summary>
+        /// Время по оси X для подписей у последнего бара (устойчиво к смене ТФ в отличие от индекса бара).
+        /// </summary>
+        public static DateTime GetLabelAnchorTime(Robot bot)
+        {
+            try
+            {
+                if (bot.Bars.Count > 0)
+                    return bot.Bars.OpenTimes[bot.Bars.Count - 1];
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return bot.Server.Time;
+        }
+
+        /// <summary>
+        /// Колбэки из COP: когда показывать торговые линии, Limit vs Market, число TP, что вызвать после восстановления.
+        /// </summary>
+        public void ConfigureRedrawSupport(
+            Func<bool> tradingLinesVisible,
+            Func<bool> isLimitMode,
+            Func<int> tpCountProvider,
+            Action afterRestore)
+        {
+            _tradingLinesVisible = tradingLinesVisible;
+            _isLimitMode = isLimitMode;
+            _tpCountProvider = tpCountProvider;
+            _afterRestore = afterRestore;
         }
 
         #region Public properties
@@ -283,6 +327,138 @@ namespace COP_v1.Chart
         public void Detach()
         {
             _bot.Chart.ObjectsUpdated -= Chart_ObjectsUpdated;
+            _bot.Chart.DisplaySettingsChanged -= Chart_DisplaySettingsChanged;
+            _bot.Chart.ChartTypeChanged -= Chart_ChartTypeChanged;
+            _bot.Chart.ObjectsRemoved -= Chart_ObjectsRemoved;
+        }
+
+        #endregion
+
+        #region Private methods — chart structure (MAR-49)
+
+        private void Chart_DisplaySettingsChanged(ChartDisplaySettingsEventArgs args)
+        {
+            TryRestoreTradingDrawings();
+        }
+
+        private void Chart_ChartTypeChanged(ChartTypeEventArgs args)
+        {
+            TryRestoreTradingDrawings();
+        }
+
+        private void Chart_ObjectsRemoved(ChartObjectsRemovedEventArgs args)
+        {
+            if (_tradingLinesVisible == null || !_tradingLinesVisible())
+                return;
+            if (!RemovedArgsContainsOurDrawing(args))
+                return;
+            TryRestoreTradingDrawings();
+        }
+
+        private static bool RemovedArgsContainsOurDrawing(ChartObjectsRemovedEventArgs args)
+        {
+            if (args?.ChartObjects == null)
+                return false;
+
+            foreach (var o in args.ChartObjects)
+            {
+                string name = o.Name;
+                if (name == EntryLineId || name == EntryTextId
+                    || name == SlLineId || name == SlTextId
+                    || name == Tp1LineId || name == Tp1TextId
+                    || name == Tp2LineId || name == Tp2TextId
+                    || name == Tp3LineId || name == Tp3TextId)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void TryRestoreTradingDrawings()
+        {
+            if (_suppressLineEvents)
+                return;
+            if (_tradingLinesVisible == null || !_tradingLinesVisible())
+                return;
+
+            int n = _tpCountProvider != null
+                ? Math.Max(1, Math.Min(3, _tpCountProvider()))
+                : _tpCount;
+
+            bool limit = _isLimitMode != null && _isLimitMode();
+
+            bool needRestore =
+                _bot.Chart.FindObject(EntryLineId) == null
+                || _bot.Chart.FindObject(SlLineId) == null
+                || _bot.Chart.FindObject(Tp1LineId) == null
+                || _bot.Chart.FindObject(EntryTextId) == null
+                || _bot.Chart.FindObject(SlTextId) == null
+                || _bot.Chart.FindObject(Tp1TextId) == null;
+
+            if (n >= 2)
+            {
+                needRestore |= _bot.Chart.FindObject(Tp2LineId) == null || _bot.Chart.FindObject(Tp2TextId) == null;
+            }
+
+            if (n >= 3)
+            {
+                needRestore |= _bot.Chart.FindObject(Tp3LineId) == null || _bot.Chart.FindObject(Tp3TextId) == null;
+            }
+
+            if (!needRestore)
+                return;
+
+            RestoreTradingDrawingsFromCache(limit, n);
+        }
+
+        private void RestoreTradingDrawingsFromCache(bool limit, int n)
+        {
+            _suppressLineEvents = true;
+            try
+            {
+                EnsureHorizontalLine(EntryLineId, _entryPrice, PanelStyles.LineEntry, limit);
+                EnsureHorizontalLine(SlLineId, _slPrice, PanelStyles.LineStopLoss, true);
+                EnsureHorizontalLine(Tp1LineId, _tp1Price, PanelStyles.LineTakeProfit, true);
+
+                if (n >= 2)
+                    EnsureHorizontalLine(Tp2LineId, _tp2Price, PanelStyles.LineTakeProfit, true);
+                if (n >= 3)
+                    EnsureHorizontalLine(Tp3LineId, _tp3Price, PanelStyles.LineTakeProfit, true);
+
+                EnsureText(EntryTextId, _entryPrice, PanelStyles.LineEntry,
+                    Localization.Get(limit ? "LimitText" : "MarketText", "0.00"));
+                EnsureText(SlTextId, _slPrice, PanelStyles.LineStopLoss, Localization.Get("StopText", "0.00"));
+                EnsureText(Tp1TextId, _tp1Price, PanelStyles.LineTakeProfit, Localization.Get("TpText", "0.0"));
+
+                if (n >= 2)
+                    EnsureText(Tp2TextId, _tp2Price, PanelStyles.LineTakeProfit, Localization.Get("TpText", "0.0"));
+                if (n >= 3)
+                    EnsureText(Tp3TextId, _tp3Price, PanelStyles.LineTakeProfit, Localization.Get("TpText", "0.0"));
+            }
+            finally
+            {
+                _suppressLineEvents = false;
+            }
+
+            _afterRestore?.Invoke();
+        }
+
+        private void EnsureHorizontalLine(string id, double price, Color color, bool interactive)
+        {
+            if (_bot.Chart.FindObject(id) != null)
+                return;
+            if (price <= 0 || double.IsNaN(price) || double.IsInfinity(price))
+                return;
+            DrawLine(id, price, color, interactive);
+        }
+
+        private void EnsureText(string textId, double price, Color color, string text)
+        {
+            if (_bot.Chart.FindObject(textId) != null)
+                return;
+            if (price <= 0 || double.IsNaN(price) || double.IsInfinity(price))
+                return;
+            DrawLineText(textId, price, color, text);
         }
 
         #endregion
@@ -326,17 +502,14 @@ namespace COP_v1.Chart
         }
 
         /// <summary>
-        /// Нарисовать текст рядом с линией.
-        /// Текст размещается на 5 свечей правее последней видимой свечи.
+        /// Подпись у времени последнего бара (не по индексу бара) — устойчиво к смене ТФ / типа графика.
         /// </summary>
         private void DrawLineText(string textId, double price, Color color, string text)
         {
-            int barIndex = _bot.Chart.LastVisibleBarIndex + 5;
-            // Защита: если график ещё не загружен
-            if (barIndex < 0)
-                barIndex = 0;
-
-            _bot.Chart.DrawText(textId, text, barIndex, price, color);
+            DateTime anchor = GetLabelAnchorTime(_bot);
+            var chartText = _bot.Chart.DrawText(textId, text, anchor, price, color);
+            chartText.HorizontalAlignment = HorizontalAlignment.Left;
+            chartText.VerticalAlignment = VerticalAlignment.Center;
         }
 
         /// <summary>
@@ -345,6 +518,9 @@ namespace COP_v1.Chart
         /// </summary>
         private void Chart_ObjectsUpdated(ChartObjectsUpdatedEventArgs args)
         {
+            if (_suppressLineEvents)
+                return;
+
             bool changed = false;
 
             // Проверяем Entry
@@ -373,15 +549,9 @@ namespace COP_v1.Chart
 
             if (changed)
             {
-                // НЕ вызываем SyncTextPositions — позиции текстов обновляются
-                // в RecalculateAll() через UpdateLineTextPosition().
-                // Два метода с разной логикой позиционирования вызывали "прыжки" текста.
                 OnLinesChanged?.Invoke();
             }
         }
-
-        // SyncTextPositions удалён: вызывал конфликт с UpdateLineTextPosition().
-        // Позиции текстов обновляются единообразно через RecalculateAll() → UpdateLineTextPosition().
 
         #endregion
     }

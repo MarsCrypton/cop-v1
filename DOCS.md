@@ -34,7 +34,7 @@
 
 | Метод | Описание |
 |-------|----------|
-| `OnStart()` | Инициализация: локализация, создание панели и менеджеров (ChartLineManager, RiskCalculator, OrderManager, FastOrderHandler), подписка на события панели и линий. |
+| `OnStart()` | Инициализация: локализация, создание панели и менеджеров (ChartLineManager, RiskCalculator, OrderManager, FastOrderHandler), **`ChartLineManager.ConfigureRedrawSupport`** (MAR-49: восстановление линий после смены ТФ/типа графика), подписка на события панели и линий. |
 | `OnTick()` | Обновление спреда на панели; в Market-режиме — обновление цены, линии Entry и вызов RecalculateAll(). |
 | `OnStop()` | Отписка от событий, удаление линий с графика, отписка FastOrderHandler. |
 
@@ -89,19 +89,19 @@
 
 ## 2. ChartLineManager.cs — управление линиями на графике
 
-Рисует и обновляет горизонтальные линии Entry, SL, TP и их текстовые подписи. Отслеживает перетаскивание.
+Рисует и обновляет горизонтальные линии Entry, SL, TP (1–3 уровня) и текстовые подписи. Отслеживает перетаскивание. После смены таймфрейма или типа графика **восстанавливает** отсутствующие объекты из кэша цен (MAR-49).
 
 ### Константы (ID объектов)
 
 - `EntryLineId`, `EntryTextId` — линия и текст Entry.
 - `SlLineId`, `SlTextId` — Stop Loss.
-- `TpLineId`, `TpTextId` — Take Profit.
+- `Tp1LineId` … `Tp3LineId` и соответствующие `Tp*TextId` — Take Profit (до трёх уровней).
 
 ### События
 
 | Событие | Описание |
 |---------|----------|
-| `OnLinesChanged` | Вызывается при перетаскивании любой из линий (по событию Chart.ObjectsUpdated). |
+| `OnLinesChanged` | Вызывается при перетаскивании любой из линий (по событию Chart.ObjectsUpdated), если не включён внутренний флаг подавления. |
 
 ### Свойства
 
@@ -109,7 +109,8 @@
 |----------|-----|----------|
 | `EntryPrice` | `double` | Текущая цена линии Entry. |
 | `StopLossPrice` | `double` | Текущая цена SL. |
-| `TakeProfitPrice` | `double` | Текущая цена TP. |
+| `TakeProfitPrice` | `double` | Текущая цена «основного» TP (зависит от числа тейков). |
+| `MainTpLineId` / `MainTpTextId` | `string` | ID основной линии/текста TP для расчёта и ввода с панели. |
 | `HasEntryLine` | `bool` | Есть ли линия Entry на графике. |
 | `HasAnyLines` | `bool` | Есть ли хотя бы одна линия (Entry или SL). |
 
@@ -117,25 +118,25 @@
 
 | Метод | Описание |
 |-------|----------|
-| `ChartLineManager(Robot bot)` | Конструктор. Подписывается на Chart.ObjectsUpdated. |
-| `ShowLimitLines()` | Удаляет старые линии, вычисляет начальные цены по видимой области (Entry 50%, SL 40%, TP 75% высоты), рисует три интерактивные линии с подписями (синяя, красная, зелёная). |
-| `ShowMarketLines()` | Аналогично, но Entry = текущая цена (Bid), линия Entry неинтерактивная; SL и TP интерактивные. |
-| `UpdateMarketEntryLine(double price, string text)` | Обновляет позицию линии и текста Market Entry (вызывается из OnTick). |
-| `RemoveAllLines()` | Удаляет все шесть объектов (3 линии + 3 текста) с графика. |
-| `UpdateLineText(string textId, string text)` | Меняет только текст подписи по ID. |
-| `UpdateLineTextPosition(string textId, double price, string text)` | Обновляет текст и позицию подписи (удаляет старый текст, рисует новый на заданной цене). |
-| `GetPrice(string lineId, double fallback)` | Возвращает текущую цену (Y) линии по ID; при отсутствии — fallback. |
-| `MoveLineTo(string lineId, double price)` | Программно перемещает линию на цену; обновляет внутренний кэш цен. |
-| `Detach()` | Отписывается от Chart.ObjectsUpdated. Вызывать при остановке бота. |
+| `GetLabelAnchorTime(Robot bot)` | Статический: время последнего бара `Bars.OpenTimes` или `Server.Time` — якорь X для подписей (устойчиво к смене ТФ). |
+| `ConfigureRedrawSupport(...)` | Задаёт из COP: когда торговые линии должны быть на графике, Limit vs Market, `TpCount`, колбэк после восстановления (обычно `RecalculateAll`). |
+| `ChartLineManager(Robot bot)` | Конструктор. Подписка на `ObjectsUpdated`, `DisplaySettingsChanged`, `ChartTypeChanged`, `ObjectsRemoved`. |
+| `ShowLimitLines(int tpCount)` | Удаляет старые линии, вычисляет начальные цены по видимой области, рисует Entry/SL/TP с подписями. |
+| `ShowMarketLines(int tpCount)` | Entry = Bid, линия Entry неинтерактивная; SL/TP интерактивные. |
+| `UpdateMarketEntryLine(double price, string text)` | Обновляет линию и текст Market Entry (из OnTick). |
+| `RemoveAllLines()` | Удаляет все объекты COP с графика. |
+| `UpdateLineText` / `UpdateLineTextPosition` | Обновление подписей; позиция — перерисовка через `DrawLineText`. |
+| `GetPrice`, `MoveLineTo` | Чтение Y с графика / программный сдвиг линии и кэша. |
+| `Detach()` | Отписка от всех подписок графика. Вызывать в OnStop. |
 
-### Внутренние методы
+### Внутренние методы (существенные)
 
 | Метод | Описание |
 |-------|----------|
-| `CalculateInitialPrices(out entry, out sl, out tp)` | Считает начальные цены по Chart.TopY/BottomY (Entry 50%, SL 40%, TP 75%); при нулевом диапазоне использует Bid ± 0.5%. |
-| `DrawLine(string id, double price, Color color, bool interactive)` | Рисует горизонтальную линию; interactive задаёт перетаскиваемость. |
-| `DrawLineText(string textId, double price, Color color, string text)` | Рисует текст у линии (barIndex = LastVisibleBarIndex + 5). |
-| `Chart_ObjectsUpdated(ChartObjectsUpdatedEventArgs args)` | Обработчик: сравнивает Y линий с кэшем; при изменении обновляет кэш и вызывает OnLinesChanged. |
+| `CalculateInitialPrices` | Начальные цены по Chart.TopY/BottomY; fallback Bid ± 0.5%. |
+| `DrawLine` / `DrawLineText` | Линия; текст через `Chart.DrawText(..., DateTime, y, ...)` и выравнивание. |
+| `TryRestoreTradingDrawings` / `RestoreTradingDrawingsFromCache` | Если не хватает линий или текстов — создать из кэша без сброса уровней по экрану. |
+| `Chart_ObjectsUpdated` | Перетаскивание линий → кэш → `OnLinesChanged` (если не `_suppressLineEvents`). |
 
 ---
 
@@ -167,7 +168,7 @@
 | `OnMouseDown(ChartMouseEventArgs args)` | Фиксирует текущую линию, переходит к следующему шагу (Entry→SL→TP или SL→TP→готово); на последнем шаге вызывает _onOrderReady. |
 | `UpdateDynamicText(double cursorPrice)` | Обновляет подпись на текущей линии: шаг 1 — объём (по примерному SL); шаг 2 — % убытка и текст на Entry; шаг 3 — RR. В Market обновляет позицию Entry-линии. |
 | `DrawFastLine(string id, double price, Color color)` | Рисует неинтерактивную линию (IsInteractive = false). |
-| `DrawFastText(...)` | Рисует текст у линии. |
+| `DrawFastText(...)` | Рисует текст у линии (время якоря — `ChartLineManager.GetLabelAnchorTime`). |
 
 ---
 

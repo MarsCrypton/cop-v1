@@ -412,9 +412,10 @@ namespace COP_v1.Chart
         /// </summary>
         private void DrawFastText(string textId, double price, Color color, string text)
         {
-            int barIndex = _bot.Chart.LastVisibleBarIndex + 5;
-            if (barIndex < 0) barIndex = 0;
-            _bot.Chart.DrawText(textId, text, barIndex, price, color);
+            DateTime anchor = ChartLineManager.GetLabelAnchorTime(_bot);
+            var chartText = _bot.Chart.DrawText(textId, text, anchor, price, color);
+            chartText.HorizontalAlignment = HorizontalAlignment.Left;
+            chartText.VerticalAlignment = VerticalAlignment.Center;
         }
 
         #endregion

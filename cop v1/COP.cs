@@ -120,6 +120,16 @@ namespace COP_v1
                 HandleFastOrderReady,
                 () => GetCurrentRiskInput());
 
+            _chartLineManager.ConfigureRedrawSupport(
+                () => _isLimitMode != null && !_fastOrderHandler.IsActive,
+                () => _isLimitMode == true,
+                () => _mainPanel.TpCount,
+                () =>
+                {
+                    if (_isLimitMode != null && !_fastOrderHandler.IsActive)
+                        RecalculateAll();
+                });
+
             // Подписаться на события панели
             _mainPanel.OnLimitClicked += HandleLimitClicked;
             _mainPanel.OnMarketClicked += HandleMarketClicked;
