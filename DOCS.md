@@ -34,9 +34,9 @@
 
 | Метод | Описание |
 |-------|----------|
-| `OnStart()` | Инициализация: локализация, создание панели и менеджеров (ChartLineManager, RiskCalculator, OrderManager, FastOrderHandler), **`ChartLineManager.ConfigureRedrawSupport`**, подписка на события панели и линий. |
+| `OnStart()` | Инициализация: локализация, создание панели и менеджеров (ChartLineManager, RiskCalculator, OrderManager, FastOrderHandler), **`ChartLineManager.ConfigureRedrawSupport`**, подписка на события панели и линий. **MAR-49:** в конце — **`TryRestoreChartLevelsAfterStart()`** (черновик из `LocalStorage` после перезапуска экземпляра, в т.ч. при смене ТФ). |
 | `OnTick()` | Обновление спреда; **MAR-49:** `RepairTradingLinesIfNeeded()` при активном Limit/Market (без Fast Order); в Market-режиме — обновление цены, линии Entry и `RecalculateAll()`. |
-| `OnStop()` | Отписка от событий, удаление линий с графика, отписка FastOrderHandler. |
+| `OnStop()` | **MAR-49:** **`SaveChartLevelsDraft()`** (черновик уровней в `LocalStorage` для обычного Limit/Market). Затем отписка от событий, удаление линий с графика, отписка FastOrderHandler. |
 
 ### Внутренние методы (Core logic)
 

@@ -10,6 +10,12 @@
 
 После включения режима с линиями на графике (в т.ч. через **MK** на мини-панели) при **смене таймфрейма** или **типа графика** пропадали линии **stop / take** и подписи. Ранее возможны были фризы терминала; актуальный симптом — исчезновение линий.
 
+### Почему событий графика недостаточно (важно)
+
+У экземпляра cBot в cTrader в числе параметров есть **таймфрейм** (см. [Manage instance parameters](https://help.ctrader.com/ctrader-algo/documentation/cbots/manage-instance-parameters/): *«The timeframe on which the instance operates»*; рекомендуется менять параметры при остановленном экземпляре и перезапускать). При смене ТФ графика платформа **перезапускает** экземпляр робота: вызываются **`OnStop` → `OnStart`**, вся оперативная память (`_isLimitMode`, кэш линий) обнуляется, объекты на графике снимаются. Любая логика «подписаться на смену ТФ и подправить линии» **не заменяет** сохранение черновика уровней между перезапусками.
+
+**Решение:** в **`OnStop`** (пока цены ещё читаются с линий) сохранять Entry/SL/TP в **`LocalStorage` (Device)**; в **`OnStart`** после инициализации — восстанавливать UI и вызывать **`ChartLineManager.RestoreLinesFromPrices`**.
+
 ## Ожидаемое поведение
 
 - Линии остаются на **тех же ценах (Y)** после переключения ТФ / типа графика (Renko, Range, тиковый и т.д.).
@@ -48,15 +54,24 @@
 
 - Флаг **`_suppressLineEvents`** на время **`RestoreTradingDrawingsFromCache`**: в **`Chart_ObjectsUpdated`** не вызывается **`OnLinesChanged`**.
 
-### 4. Файлы
+### 4. LocalStorage — черновик уровней
+
+Ключи: `COP ChartLevels Active`, `Symbol`, `Account`, `Limit`, `TpCount`, `E`, `S`, `T1`–`T3`.
+
+- **Сохранение:** `SaveChartLevelsDraft()` в начале **`OnStop`**, если активен обычный Limit/Market (не Fast Order).
+- **Очистка:** `ClearChartLevelsDraft()` при выходе в IDLE, сабмите, сбое Fast Order и т.д.
+- **Загрузка:** `TryRestoreChartLevelsAfterStart()` в конце **`OnStart`**; проверка **символ** и **номер счёта**.
+
+### 5. Файлы
 
 | Файл | Изменения |
 |------|-----------|
-| [`cop v1/Chart/ChartLineManager.cs`](../../cop%20v1/Chart/ChartLineManager.cs) | `GetLabelAnchorTime`, `DrawLineText` по времени, события графика, восстановление, `_suppressLineEvents` |
-| [`cop v1/COP.cs`](../../cop%20v1/COP.cs) | После создания `FastOrderHandler` — **`ConfigureRedrawSupport(...)`** |
-| [`cop v1/Chart/FastOrderHandler.cs`](../../cop%20v1/Chart/FastOrderHandler.cs) | **`DrawFastText`** через **`GetLabelAnchorTime`** |
+| [`cop v1/Chart/ChartLineManager.cs`](../../cop%20v1/Chart/ChartLineManager.cs) | `PaintTradingLinesFromCache`, **`RestoreLinesFromPrices`**, MAR-49 по графику |
+| [`cop v1/UI/MainPanel.cs`](../../cop%20v1/UI/MainPanel.cs) | **`ApplyRestoredTradingMode`** (кнопки + комбо TP без событий) |
+| [`cop v1/COP.cs`](../../cop%20v1/COP.cs) | **`SaveChartLevelsDraft` / `TryRestoreChartLevelsAfterStart`**, вызовы **`ClearChartLevelsDraft`** |
+| [`cop v1/Chart/FastOrderHandler.cs`](../../cop%20v1/Chart/FastOrderHandler.cs) | Подписи по времени якоря |
 
-### 5. Ограничение
+### 6. Ограничение
 
 - Во время **активного** пошагового Fast Order восстановление через этот контур **не** выполняется (колбэк «линии должны быть» возвращает false). Отдельное восстановление mid-Fast Order в объём MAR-49 не входило.
 

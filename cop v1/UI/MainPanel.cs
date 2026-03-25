@@ -880,6 +880,32 @@ namespace COP_v1.UI
         }
 
         /// <summary>
+        /// Восстановить UI режима Limit/Market после перезапуска cBot (смена ТФ). Без вызова OnLimitClicked / OnMarketClicked.
+        /// </summary>
+        /// <param name="isLimit">true = Limit активен, false = Market.</param>
+        /// <param name="tpCount">1, 2 или 3 — соответствует комбо «число тейков».</param>
+        public void ApplyRestoredTradingMode(bool isLimit, int tpCount)
+        {
+            _isUpdatingFromCode = true;
+
+            int idx = tpCount <= 1 ? 0 : (tpCount == 2 ? 1 : 2);
+            _tpCountCombo.SelectedIndex = Math.Max(0, Math.Min(2, idx));
+
+            IsLimitActive = isLimit;
+            IsMarketActive = !isLimit;
+            PanelStyles.ApplyModeButtonStyle(_limitButton, isLimit);
+            PanelStyles.ApplyModeButtonStyle(_marketButton, !isLimit);
+            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, isLimit);
+            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, !isLimit);
+            _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
+
+            SetMode(isLimit);
+            SetFieldsReadOnly(false);
+
+            _isUpdatingFromCode = false;
+        }
+
+        /// <summary>
         /// Сбросить панель в исходное состояние (IDLE).
         /// </summary>
         public void ResetToIdle()

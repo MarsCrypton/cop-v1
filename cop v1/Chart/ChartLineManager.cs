@@ -166,27 +166,7 @@ namespace COP_v1.Chart
                 _tp3Price = tp3;
             }
 
-            // Entry — синяя
-            DrawLine(EntryLineId, _entryPrice, PanelStyles.LineEntry);
-            DrawLineText(EntryTextId, _entryPrice, PanelStyles.LineEntry, Localization.Get("LimitText", "0.00"));
-
-            // Stop Loss — красная
-            DrawLine(SlLineId, _slPrice, PanelStyles.LineStopLoss);
-            DrawLineText(SlTextId, _slPrice, PanelStyles.LineStopLoss, Localization.Get("StopText", "0.00"));
-
-            // Take Profit — зелёные (1, 2 или 3)
-            DrawLine(Tp1LineId, _tp1Price, PanelStyles.LineTakeProfit);
-            DrawLineText(Tp1TextId, _tp1Price, PanelStyles.LineTakeProfit, Localization.Get("TpText", "0.0"));
-            if (_tpCount >= 2)
-            {
-                DrawLine(Tp2LineId, _tp2Price, PanelStyles.LineTakeProfit);
-                DrawLineText(Tp2TextId, _tp2Price, PanelStyles.LineTakeProfit, Localization.Get("TpText", "0.0"));
-            }
-            if (_tpCount == 3)
-            {
-                DrawLine(Tp3LineId, _tp3Price, PanelStyles.LineTakeProfit);
-                DrawLineText(Tp3TextId, _tp3Price, PanelStyles.LineTakeProfit, Localization.Get("TpText", "0.0"));
-            }
+            PaintTradingLinesFromCache(limitEntryInteractive: true);
         }
 
         /// <summary>
@@ -219,8 +199,31 @@ namespace COP_v1.Chart
                 _tp2Price = _entryPrice + step * 2.0;
             }
 
-            DrawLine(EntryLineId, _entryPrice, PanelStyles.LineEntry, interactive: false);
-            DrawLineText(EntryTextId, _entryPrice, PanelStyles.LineEntry, Localization.Get("MarketText", "0.00"));
+            PaintTradingLinesFromCache(limitEntryInteractive: false);
+        }
+
+        /// <summary>
+        /// Восстановить линии после перезапуска cBot (смена ТФ перезапускает экземпляр). Цены из LocalStorage.
+        /// </summary>
+        public void RestoreLinesFromPrices(bool limit, int tpCount, double entry, double sl, double tp1, double tp2, double tp3)
+        {
+            _tpCount = tpCount < 1 ? 1 : (tpCount > 3 ? 3 : tpCount);
+            _entryPrice = entry;
+            _slPrice = sl;
+            _tp1Price = tp1;
+            _tp2Price = _tpCount >= 2 ? tp2 : 0;
+            _tp3Price = _tpCount == 3 ? tp3 : 0;
+            RemoveAllLines();
+            PaintTradingLinesFromCache(limitEntryInteractive: limit);
+        }
+
+        /// <summary>Рисует все линии и подписи по текущему кэшу _entryPrice / _slPrice / _tp* / _tpCount.</summary>
+        private void PaintTradingLinesFromCache(bool limitEntryInteractive)
+        {
+            bool limit = limitEntryInteractive;
+            DrawLine(EntryLineId, _entryPrice, PanelStyles.LineEntry, interactive: limit);
+            DrawLineText(EntryTextId, _entryPrice, PanelStyles.LineEntry,
+                Localization.Get(limit ? "LimitText" : "MarketText", "0.00"));
 
             DrawLine(SlLineId, _slPrice, PanelStyles.LineStopLoss);
             DrawLineText(SlTextId, _slPrice, PanelStyles.LineStopLoss, Localization.Get("StopText", "0.00"));

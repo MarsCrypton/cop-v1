@@ -144,6 +144,8 @@ namespace COP_v1
             // Подписаться на изменение линий
             _chartLineManager.OnLinesChanged += HandleLinesChanged;
 
+            TryRestoreChartLevelsAfterStart();
+
             Print("COP v1 started. Language: {0}", InterfaceLanguage);
         }
 
@@ -175,6 +177,9 @@ namespace COP_v1
 
         protected override void OnStop()
         {
+            // Смена ТФ перезапускает экземпляр cBot — сохраняем уровни до RemoveAllLines (иначе память и график обнуляются).
+            SaveChartLevelsDraft();
+
             // Отписаться от событий панели
             if (_mainPanel != null)
             {
@@ -426,6 +431,162 @@ namespace COP_v1
             catch { }
         }
 
+        #region LocalStorage — черновик уровней на графике (перезапуск cBot при смене ТФ)
+
+        private const string ChartLevelsKeyActive = "COP ChartLevels Active";
+        private const string ChartLevelsKeySymbol = "COP ChartLevels Symbol";
+        private const string ChartLevelsKeyAccount = "COP ChartLevels Account";
+        private const string ChartLevelsKeyLimit = "COP ChartLevels Limit";
+        private const string ChartLevelsKeyTpCount = "COP ChartLevels TpCount";
+        private const string ChartLevelsKeyE = "COP ChartLevels E";
+        private const string ChartLevelsKeyS = "COP ChartLevels S";
+        private const string ChartLevelsKeyT1 = "COP ChartLevels T1";
+        private const string ChartLevelsKeyT2 = "COP ChartLevels T2";
+        private const string ChartLevelsKeyT3 = "COP ChartLevels T3";
+
+        private void ClearChartLevelsDraft()
+        {
+            try
+            {
+                LocalStorage.SetString(ChartLevelsKeyActive, "0", LocalStorageScope.Device);
+                LocalStorage.Flush(LocalStorageScope.Device);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        /// <summary>
+        /// Сохранить Entry/SL/TP перед OnStop: при смене таймфрейма cTrader перезапускает cBot, события графика не помогают.
+        /// </summary>
+        private void SaveChartLevelsDraft()
+        {
+            try
+            {
+                if (_chartLineManager == null || _mainPanel == null)
+                    return;
+
+                if (_isLimitMode == null)
+                {
+                    ClearChartLevelsDraft();
+                    return;
+                }
+
+                if ((_fastOrderHandler != null && _fastOrderHandler.IsActive) || _mainPanel.IsFastOrder)
+                {
+                    ClearChartLevelsDraft();
+                    return;
+                }
+
+                double e = _chartLineManager.EntryPrice;
+                double s = _chartLineManager.StopLossPrice;
+                double t1 = _chartLineManager.TakeProfitPrice1;
+                int tpN = _mainPanel.TpCount;
+                double t2 = tpN >= 2 ? _chartLineManager.TakeProfitPrice2 : 0;
+                double t3 = tpN >= 3 ? _chartLineManager.TakeProfitPrice3 : 0;
+
+                if (e <= 0 || s <= 0 || t1 <= 0 || double.IsNaN(e) || double.IsNaN(s) || double.IsNaN(t1))
+                {
+                    ClearChartLevelsDraft();
+                    return;
+                }
+
+                LocalStorage.SetString(ChartLevelsKeyActive, "1", LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeySymbol, Symbol.Name, LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeyAccount, Account.Number.ToString(CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeyLimit, _isLimitMode == true ? "1" : "0", LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeyTpCount, tpN.ToString(CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeyE, e.ToString("G17", CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeyS, s.ToString("G17", CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeyT1, t1.ToString("G17", CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeyT2, t2.ToString("G17", CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.SetString(ChartLevelsKeyT3, t3.ToString("G17", CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.Flush(LocalStorageScope.Device);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private static bool TryParseChartLevelDouble(string raw, out double value)
+        {
+            value = 0;
+            if (string.IsNullOrWhiteSpace(raw))
+                return false;
+            return double.TryParse(raw.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        }
+
+        private void TryRestoreChartLevelsAfterStart()
+        {
+            try
+            {
+                string active = LocalStorage.GetString(ChartLevelsKeyActive, LocalStorageScope.Device);
+                if (active != "1")
+                    return;
+
+                string sym = LocalStorage.GetString(ChartLevelsKeySymbol, LocalStorageScope.Device);
+                if (string.IsNullOrEmpty(sym) || sym != Symbol.Name)
+                {
+                    ClearChartLevelsDraft();
+                    return;
+                }
+
+                string accSaved = LocalStorage.GetString(ChartLevelsKeyAccount, LocalStorageScope.Device);
+                if (accSaved != Account.Number.ToString(CultureInfo.InvariantCulture))
+                {
+                    ClearChartLevelsDraft();
+                    return;
+                }
+
+                bool limit = LocalStorage.GetString(ChartLevelsKeyLimit, LocalStorageScope.Device) == "1";
+                string tpRaw = LocalStorage.GetString(ChartLevelsKeyTpCount, LocalStorageScope.Device);
+                int tpCount = 2;
+                if (!string.IsNullOrWhiteSpace(tpRaw) && int.TryParse(tpRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int tpParsed))
+                    tpCount = Math.Max(1, Math.Min(3, tpParsed));
+
+                string eStr = LocalStorage.GetString(ChartLevelsKeyE, LocalStorageScope.Device);
+                string sStr = LocalStorage.GetString(ChartLevelsKeyS, LocalStorageScope.Device);
+                string t1Str = LocalStorage.GetString(ChartLevelsKeyT1, LocalStorageScope.Device);
+                string t2Str = LocalStorage.GetString(ChartLevelsKeyT2, LocalStorageScope.Device);
+                string t3Str = LocalStorage.GetString(ChartLevelsKeyT3, LocalStorageScope.Device);
+
+                if (!TryParseChartLevelDouble(eStr, out double e)
+                    || !TryParseChartLevelDouble(sStr, out double s)
+                    || !TryParseChartLevelDouble(t1Str, out double t1))
+                {
+                    ClearChartLevelsDraft();
+                    return;
+                }
+
+                TryParseChartLevelDouble(t2Str, out double t2);
+                TryParseChartLevelDouble(t3Str, out double t3);
+
+                if (e <= 0 || s <= 0 || t1 <= 0)
+                {
+                    ClearChartLevelsDraft();
+                    return;
+                }
+
+                _mainPanel.ApplyRestoredTradingMode(limit, tpCount);
+                _isLimitMode = limit ? true : false;
+                _chartLineManager.RestoreLinesFromPrices(limit, tpCount, e, s, t1, t2, t3);
+
+                if (!limit)
+                    _mainPanel.UpdateMarketPrice(Symbol.Bid, Symbol.Ask, Symbol.Digits);
+
+                RecalculateAll();
+                Print("COP: chart levels restored from LocalStorage (instance restarted, e.g. timeframe change).");
+            }
+            catch
+            {
+                ClearChartLevelsDraft();
+            }
+        }
+
+        #endregion
+
         private double LoadSavedRiskUsd()
         {
             const string key = "COP MaxRiskUsd";
@@ -630,6 +791,7 @@ namespace COP_v1
             else
             {
                 // Деактивация
+                ClearChartLevelsDraft();
                 if (_mainPanel.IsFastOrder && _fastOrderHandler.IsActive)
                     _fastOrderHandler.Cancel();
                 else
@@ -670,6 +832,7 @@ namespace COP_v1
             else
             {
                 // Деактивация
+                ClearChartLevelsDraft();
                 if (_mainPanel.IsFastOrder && _fastOrderHandler.IsActive)
                     _fastOrderHandler.Cancel();
                 else
@@ -729,6 +892,7 @@ namespace COP_v1
                 Print("All orders FAILED");
             }
 
+            ClearChartLevelsDraft();
             _chartLineManager.RemoveAllLines();
             _mainPanel.ResetToIdle();
             _mainPanel.Collapse();
@@ -779,6 +943,7 @@ namespace COP_v1
             // Если шёл процесс Fast Order — отменить
             if (_fastOrderHandler.IsActive)
             {
+                ClearChartLevelsDraft();
                 _fastOrderHandler.Cancel();
                 _isLimitMode = null;
                 _mainPanel.ResetToIdle();
@@ -789,6 +954,7 @@ namespace COP_v1
             // Если переключили во время активного обычного режима
             if (_isLimitMode != null && _chartLineManager.HasAnyLines)
             {
+                ClearChartLevelsDraft();
                 // Убрать линии обычного режима, начать заново
                 _chartLineManager.RemoveAllLines();
                 _isLimitMode = null;
@@ -914,6 +1080,7 @@ namespace COP_v1
                     entryPrice.ToString("F" + Symbol.Digits),
                     slPrice.ToString("F" + Symbol.Digits),
                     tpPrices[0].ToString("F" + Symbol.Digits));
+                ClearChartLevelsDraft();
                 _chartLineManager.RemoveAllLines();
                 _mainPanel.ResetToIdle();
                 _isLimitMode = null;
@@ -927,6 +1094,7 @@ namespace COP_v1
             if (!TryGetRiskAmountInAccountCurrency(out double riskMoneyAccount, out string riskError))
             {
                 _mainPanel.ShowRiskError(riskError);
+                ClearChartLevelsDraft();
                 _chartLineManager.RemoveAllLines();
                 _mainPanel.ResetToIdle();
                 _isLimitMode = null;
@@ -967,6 +1135,7 @@ namespace COP_v1
                 Print("Fast Order: all orders FAILED");
             }
 
+            ClearChartLevelsDraft();
             _chartLineManager.RemoveAllLines();
             _mainPanel.ResetToIdle();
             _mainPanel.Collapse();
