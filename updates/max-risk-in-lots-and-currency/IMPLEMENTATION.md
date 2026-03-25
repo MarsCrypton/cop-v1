@@ -15,3 +15,92 @@
 - Если конвертация недоступна — показываем ошибку **только на панели** и пропускаем расчёт.
 - Отображение денег в SL/TP остаётся как раньше (всегда `$`).
 
+---
+
+## Что реализовано (итог)
+
+### Параметры робота (cTrader Settings)
+
+Добавлены параметры (имена на английском, как принято в проекте):
+
+- **`Risk Mode`**: `Percent | USD | EUR` (по умолчанию `Percent`)
+- **`Max Risk %`**: `double` 0.1–100 (как раньше)
+- **`Max Risk USD`**: `double` > 0 (по умолчанию 50)
+- **`Max Risk EUR`**: `double` > 0 (по умолчанию 50)
+
+### UI (MainPanel)
+
+Блок риска сделан **в одну строку** и находится в основной панели (всегда видим):
+
+```text
+Risk   [Percent|USD|EUR]  [  value  ]  [%/USD/EUR]
+```
+
+- Лейбл слева: `Risk`
+- Комбо выбора режима: `Percent / USD / EUR`
+- Поле ввода значения: одно, меняется смысл по режиму
+- Суффикс справа от поля: `%` или `USD` или `EUR`
+- Ошибка конвертации/расчёта (если случилась) показывается **под блоком риска** (и только на панели).
+
+### Сохранение (LocalStorage)
+
+Сохраняются последние выбранные значения (Device scope):
+
+- `COP RiskMode`
+- `COP MaxRiskPercent` (как раньше)
+- `COP MaxRiskUsd`
+- `COP MaxRiskEur`
+
+При старте:
+
+- сначала читается `COP RiskMode` (если нет — берётся параметр робота `Risk Mode`)
+- затем под выбранный режим подставляется сохранённое значение (или дефолт из параметров робота)
+
+### Расчёт объёма
+
+Общий принцип: привести ввод риска к **сумме риска в валюте депозита**, затем рассчитать объём по SL.
+
+#### Percent
+
+- `riskMoneyAccount = Account.Balance * (riskPercent / 100)`
+
+#### USD / EUR
+
+- `riskMoneyAccount = AssetConverter.Convert(riskMoney, fromCurrency, Account.Asset.Name)`
+  - `fromCurrency` = `"USD"` или `"EUR"`
+
+Далее (для всех режимов одинаково):
+
+- `volumeUnits = riskMoneyAccount / (SL_pips * Symbol.PipValue)`
+- объём нормализуется под шаг/мин/макс символа
+
+### Fast Order
+
+Fast Order использует тот же выбранный режим риска и ту же конвертацию через `AssetConverter`.
+При проблеме конвертации Fast Order не падает и не ставит ордер: показывает ошибку на панели.
+
+---
+
+## Файлы, затронутые обновлением
+
+- `cop v1/COP.cs`
+  - `RiskMode` + параметры `MaxRiskUsd/MaxRiskEur`
+  - загрузка/сохранение LocalStorage
+  - расчёт суммы риска в валюте депозита через `AssetConverter`
+- `cop v1/UI/MainPanel.cs`
+  - переключатель режима `Percent/USD/EUR` (всегда видим)
+  - суффикс единиц, вывод ошибок на панели
+- `cop v1/Trading/RiskCalculator.cs`
+  - расчёт объёма по сумме риска (`CalculateVolumeFromRiskAmount`)
+- `cop v1/Chart/FastOrderHandler.cs`
+  - учёт `RiskMode` и конвертация через `AssetConverter`
+- `cop v1/UI/Localization.cs`
+  - ключ `Risk`
+  - ключ `RiskConvertError`
+
+---
+
+## Известные ограничения / замечания
+
+- Значок валюты в подсказках SL/TP остаётся `$` (как было), даже если режим USD/EUR.
+- Если `Account.Asset.Name` недоступен (редкий случай), используется fallback `"USD"` (техническая защита).
