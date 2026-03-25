@@ -95,3 +95,8 @@
 - **`MarketText`**: сокращение **`MKT`** (RU: **МКТ**).
 - Сборка `dotnet build` — без ошибок. Ручную проверку в cTrader (ТФ, fast order, 1–3 TP) выполняет автор.
 
+## Закрытие (2026-03-25)
+
+- **Linear [MAR-76](https://linear.app/marskorshun/issue/MAR-76):** статус **Done**.
+- **Git:** изменения влиты в **`main`** (коммит **`1263988`** на репозитории, ветка `mar-76-chart-line-labels-right-side`).
+
