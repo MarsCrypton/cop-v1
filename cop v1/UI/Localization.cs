@@ -260,17 +260,18 @@ namespace COP_v1.UI
                 [Language.NL] = "SL {0}% · {1}",
                 [Language.PT] = "SL {0}% · {1}"
             },
+            // Средняя точка (·) между RR и суммой — как в StopText между % и $ (визуально по центру строки, не baseline «.»).
             ["TpText"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "TP RR {0} {1}",
-                [Language.RU] = "TP RR {0} {1}",
-                [Language.DE] = "TP RR {0} {1}",
-                [Language.FR] = "TP RR {0} {1}",
-                [Language.ES] = "TP RR {0} {1}",
-                [Language.IT] = "TP RR {0} {1}",
-                [Language.PL] = "TP RR {0} {1}",
-                [Language.NL] = "TP RR {0} {1}",
-                [Language.PT] = "TP RR {0} {1}"
+                [Language.EN] = "TP RR {0} · {1}",
+                [Language.RU] = "TP RR {0} · {1}",
+                [Language.DE] = "TP RR {0} · {1}",
+                [Language.FR] = "TP RR {0} · {1}",
+                [Language.ES] = "TP RR {0} · {1}",
+                [Language.IT] = "TP RR {0} · {1}",
+                [Language.PL] = "TP RR {0} · {1}",
+                [Language.NL] = "TP RR {0} · {1}",
+                [Language.PT] = "TP RR {0} · {1}"
             },
             ["LimitText"] = new Dictionary<Language, string>
             {
