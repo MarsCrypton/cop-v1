@@ -38,3 +38,8 @@
 ## Документация репозитория
 
 - `DOCS.md` — раздел про ChartLineManager, подпункт **ZIndex линий и подписей (MAR-78)**.
+
+## Релиз
+
+- **Git `main`:** коммит `feat(MAR-78): chart lines ZIndex above drawings, labels non-interactive` (после push в `origin/main`).
+- **Linear:** MAR-78 — **Done**.
