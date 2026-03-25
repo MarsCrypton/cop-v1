@@ -267,7 +267,7 @@
 | `UpdateEntryPrice(double price, int digits)` | Устанавливает цену входа в поле (без вызова OnPriceChanged). |
 | `UpdateMarketPrice(double bid, double ask, int digits)` | Устанавливает рыночную цену в поле. |
 | `UpdateStopLoss(double price, int digits, double lossDollars, double lossPercent)` | Обновляет поле SL и подпись $ (%). |
-| `UpdateTakeProfit(double price, int digits, double profitDollars, double profitPercent)` | Обновляет поле TP и подпись $ (%). |
+| `UpdateTakeProfit(double price, int digits, double profitDollars, double profitPercent, int tpCount, TpVolumeMode tpVolumeMode)` | Обновляет поле TP (цена — дальний TP) и подпись: при одном тейке `$ (%)`, при нескольких — суммарная прибыль и метка режима объёма. |
 | `UpdateSubmitButton(int direction, bool isLimit, string symbolName, string volumeLots)` | direction: 1 Long, -1 Short, 0 Invalid. Меняет текст и стиль кнопки (серая/зелёная/красная). |
 | `SetMode(bool isLimit)` | Меняет заголовок блока цены (Limit Order / Market Order) и readonly поля цены. |
 | `SetFieldsReadOnly(bool readOnly)` | Делает поля SL/TP (и при readOnly — цену) только для чтения. |

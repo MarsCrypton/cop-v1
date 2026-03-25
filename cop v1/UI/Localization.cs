@@ -419,6 +419,43 @@ namespace COP_v1.UI
                 [Language.PL] = "Równy zysk",
                 [Language.NL] = "Gelijke winst",
                 [Language.PT] = "Lucro igual"
+            },
+            // Суммарная прибыль при нескольких TP: {0} $, {1} % баланса, {2} число тейков (2/3), {3} краткая метка режима
+            ["TpInfoMulti"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}",
+                [Language.RU] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}",
+                [Language.DE] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}",
+                [Language.FR] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}",
+                [Language.ES] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}",
+                [Language.IT] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}",
+                [Language.PL] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}",
+                [Language.NL] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}",
+                [Language.PT] = "{0:F2}$ ({1:F2}%) · Σ {2} TP · {3}"
+            },
+            ["TpAllocShortEqualVolume"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "eq.vol",
+                [Language.RU] = "равн.объём",
+                [Language.DE] = "gl.Vol.",
+                [Language.FR] = "éq.vol",
+                [Language.ES] = "eq.vol",
+                [Language.IT] = "eq.vol",
+                [Language.PL] = "rów.wol.",
+                [Language.NL] = "eq.vol",
+                [Language.PT] = "eq.vol"
+            },
+            ["TpAllocShortEqualProfit"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "eq.pr.",
+                [Language.RU] = "равн.профит",
+                [Language.DE] = "gl.Gw.",
+                [Language.FR] = "éq.pr.",
+                [Language.ES] = "eq.pr.",
+                [Language.IT] = "eq.pr.",
+                [Language.PL] = "rów.zysk",
+                [Language.NL] = "eq.pr.",
+                [Language.PT] = "eq.pr."
             }
         };
 

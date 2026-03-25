@@ -132,6 +132,9 @@ namespace COP_v1.Chart
         /// <summary>Цена TP3 (при 3 тейках).</summary>
         public double TakeProfitPrice3 => GetPrice(Tp3LineId, _tp3Price);
 
+        /// <summary>Число тейков, с которым нарисованы линии (1–3), может отличаться от выбора в настройках до синхронизации.</summary>
+        public int DisplayedTpCount => _tpCount;
+
         /// <summary>Существует ли линия Entry на графике.</summary>
         public bool HasEntryLine => _bot.Chart.FindObject(EntryLineId) != null;
 

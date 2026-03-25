@@ -140,6 +140,7 @@ namespace COP_v1
             _mainPanel.OnSlChanged += HandleSlFieldChanged;
             _mainPanel.OnTpChanged += HandleTpFieldChanged;
             _mainPanel.OnTransparencyChanged += SaveTransparency;
+            _mainPanel.OnTpAllocationSettingsChanged += HandleTpAllocationSettingsChanged;
 
             // Подписаться на изменение линий
             _chartLineManager.OnLinesChanged += HandleLinesChanged;
@@ -191,6 +192,7 @@ namespace COP_v1
                 _mainPanel.OnPriceChanged -= HandlePriceFieldChanged;
                 _mainPanel.OnSlChanged -= HandleSlFieldChanged;
                 _mainPanel.OnTpChanged -= HandleTpFieldChanged;
+                _mainPanel.OnTpAllocationSettingsChanged -= HandleTpAllocationSettingsChanged;
             }
 
             // Отписаться от ChartLineManager и удалить линии
@@ -265,17 +267,35 @@ namespace COP_v1
             _lastVolumeUnits = _riskCalculator.CalculateVolumeFromRiskAmount(entryPrice, slPrice, riskMoneyAccount);
             _lastVolumeLots = _riskCalculator.ToLots(_lastVolumeUnits);
 
-            // === 5. Рассчитать убыток/прибыль ===
+            // === 5. Рассчитать убыток (полная позиция по SL) ===
             double slDollars, slPercent;
             _riskCalculator.CalculateLoss(entryPrice, slPrice, _lastVolumeUnits, out slDollars, out slPercent);
 
+            int tpN = _mainPanel.TpCount;
             double tpDollars, tpPercent;
-            _riskCalculator.CalculateProfit(entryPrice, tpPrice, _lastVolumeUnits, out tpDollars, out tpPercent);
-
-            // === 6. RR ===
             double rr = _riskCalculator.CalculateRR(entryPrice, slPrice, tpPrice);
+            double[] tpPricesMulti = null;
+            double[] volsMulti = null;
 
-            // === 7. Обновить панель ===
+            if (tpN >= 2 && _lastDirection != OrderDirection.Invalid)
+            {
+                tpPricesMulti = GetTpPricesArray();
+                volsMulti = SplitVolumesForTps(_lastVolumeUnits, entryPrice, tpPricesMulti, _lastDirection == OrderDirection.Long);
+                double sumProfit = 0;
+                int legs = Math.Min(volsMulti.Length, tpPricesMulti.Length);
+                for (int i = 0; i < legs; i++)
+                {
+                    double d, pct;
+                    _riskCalculator.CalculateProfit(entryPrice, tpPricesMulti[i], volsMulti[i], out d, out pct);
+                    sumProfit += d;
+                }
+                tpDollars = sumProfit;
+                tpPercent = Account.Balance > 0 ? (sumProfit / Account.Balance) * 100.0 : 0;
+            }
+            else
+                _riskCalculator.CalculateProfit(entryPrice, tpPrice, _lastVolumeUnits, out tpDollars, out tpPercent);
+
+            // === 6–7. Обновить панель ===
             int digits = Symbol.Digits;
 
             if (_isLimitMode == true)
@@ -283,7 +303,7 @@ namespace COP_v1
             // Market цена обновляется в OnTick → UpdateMarketPrice
 
             _mainPanel.UpdateStopLoss(slPrice, digits, slDollars, slPercent);
-            _mainPanel.UpdateTakeProfit(tpPrice, digits, tpDollars, tpPercent);
+            _mainPanel.UpdateTakeProfit(tpPrice, digits, tpDollars, tpPercent, tpN, _mainPanel.TpVolumeMode);
 
             // === 8. Обновить кнопку подтверждения ===
             string volText = _lastVolumeLots.ToString("F2");
@@ -312,12 +332,114 @@ namespace COP_v1
                 Localization.Get("StopText", slPercent.ToString("F2"),
                     ChartLineManager.FormatChartMoneyDollar(slDollars)));
 
-            _chartLineManager.UpdateLineTextPosition(
-                _chartLineManager.MainTpTextId,
-                tpPrice,
-                Localization.Get("TpText",
-                    rr.ToString("F1"),
-                    ChartLineManager.FormatChartMoneyDollar(tpDollars)));
+            // === TP: одна линия или подпись на каждой (объём по SplitVolumesForTps) ===
+            if (tpN >= 2 && tpPricesMulti != null && volsMulti != null && _lastDirection != OrderDirection.Invalid)
+            {
+                string[] tpTextIds = { ChartLineManager.Tp1TextId, ChartLineManager.Tp2TextId, ChartLineManager.Tp3TextId };
+                for (int i = 0; i < tpN; i++)
+                {
+                    double volI = volsMulti.Length == 1
+                        ? (i == tpN - 1 ? volsMulti[0] : 0)
+                        : (i < volsMulti.Length ? volsMulti[i] : 0);
+                    double pLeg, pLegPct;
+                    _riskCalculator.CalculateProfit(entryPrice, tpPricesMulti[i], volI, out pLeg, out pLegPct);
+                    double rrI = _riskCalculator.CalculateRR(entryPrice, slPrice, tpPricesMulti[i]);
+                    string tpLabel = volI > 0
+                        ? Localization.Get("TpText", rrI.ToString("F1"), ChartLineManager.FormatChartMoneyDollar(pLeg))
+                        : ChartLineManager.InitialTpLineLabel();
+                    _chartLineManager.UpdateLineTextPosition(tpTextIds[i], tpPricesMulti[i], tpLabel);
+                }
+            }
+            else
+            {
+                _chartLineManager.UpdateLineTextPosition(
+                    _chartLineManager.MainTpTextId,
+                    tpPrice,
+                    Localization.Get("TpText",
+                        rr.ToString("F1"),
+                        ChartLineManager.FormatChartMoneyDollar(tpDollars)));
+            }
+        }
+
+        /// <summary>
+        /// Смена «число тейков» или «равный объём / равный профит» в настройках: синхронизировать линии с панелью и пересчитать.
+        /// </summary>
+        private void HandleTpAllocationSettingsChanged()
+        {
+            if (_isLimitMode == null || _fastOrderHandler.IsActive)
+                return;
+
+            if (_chartLineManager.HasAnyLines)
+            {
+                int want = _mainPanel.TpCount;
+                int have = _chartLineManager.DisplayedTpCount;
+                if (want != have)
+                    SyncChartTpLineCountToPanel(want, have);
+            }
+
+            RecalculateAll();
+        }
+
+        /// <summary>
+        /// Подогнать число линий TP под выбор в настройках, сохранив цены по возможности.
+        /// </summary>
+        private void SyncChartTpLineCountToPanel(int want, int have)
+        {
+            double e = _chartLineManager.EntryPrice;
+            double sl = _chartLineManager.StopLossPrice;
+            double p1 = _chartLineManager.TakeProfitPrice1;
+            double p2 = _chartLineManager.TakeProfitPrice2;
+            double p3 = _chartLineManager.TakeProfitPrice3;
+            bool limit = _isLimitMode == true;
+
+            if (want == 1)
+            {
+                double far = have == 1 ? p1 : (have == 2 ? p2 : p3);
+                _chartLineManager.RestoreLinesFromPrices(limit, 1, e, sl, far, 0, 0);
+                return;
+            }
+
+            if (want == 2)
+            {
+                if (have == 1)
+                {
+                    double mid = (e + p1) * 0.5;
+                    _chartLineManager.RestoreLinesFromPrices(limit, 2, e, sl, mid, p1, 0);
+                }
+                else
+                    _chartLineManager.RestoreLinesFromPrices(limit, 2, e, sl, p1, p3, 0);
+                return;
+            }
+
+            // want == 3
+            if (have == 1)
+            {
+                bool tpAbove = p1 > e;
+                if (tpAbove)
+                {
+                    double step = (p1 - e) / 3.0;
+                    _chartLineManager.RestoreLinesFromPrices(limit, 3, e, sl, e + step, e + 2.0 * step, p1);
+                }
+                else
+                {
+                    double step = (e - p1) / 3.0;
+                    _chartLineManager.RestoreLinesFromPrices(limit, 3, e, sl, e - step, e - 2.0 * step, p1);
+                }
+                return;
+            }
+
+            // have == 2 → 3
+            bool longTp = p2 > p1;
+            if (longTp)
+            {
+                double p3n = p2 + (p2 - p1);
+                _chartLineManager.RestoreLinesFromPrices(limit, 3, e, sl, p1, p2, p3n);
+            }
+            else
+            {
+                double p3n = p2 - (p1 - p2);
+                _chartLineManager.RestoreLinesFromPrices(limit, 3, e, sl, p1, p2, p3n);
+            }
         }
 
         /// <summary>

@@ -133,6 +133,9 @@ namespace COP_v1.UI
         /// <summary>Вызывается при переключении чекбокса Fast Order. Аргумент: новое состояние.</summary>
         public event Action<bool> OnFastOrderToggled;
 
+        /// <summary>Смена числа тейков или режима равный объём / равный профит в настройках.</summary>
+        public event Action OnTpAllocationSettingsChanged;
+
         /// <summary>
         /// Создать панель COP v1.
         /// </summary>
@@ -560,7 +563,7 @@ namespace COP_v1.UI
             _tpCountCombo.AddItem(Localization.Get("TpCount1"));
             _tpCountCombo.AddItem(Localization.Get("TpCount2"));
             _tpCountCombo.AddItem(Localization.Get("TpCount3"));
-            _tpCountCombo.SelectedItemChanged += (args) => { };
+            _tpCountCombo.SelectedItemChanged += _ => OnTpAllocationSettingsChanged?.Invoke();
             // По умолчанию 1 тейк (индекс 0).
             _tpCountCombo.SelectedIndex = 0;
             var tpCountRow = new StackPanel
@@ -589,7 +592,7 @@ namespace COP_v1.UI
             _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualVolume"));
             _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualProfit"));
             _tpVolumeModeCombo.SelectedIndex = 0; // равный объём по умолчанию
-            _tpVolumeModeCombo.SelectedItemChanged += (args) => { };
+            _tpVolumeModeCombo.SelectedItemChanged += _ => OnTpAllocationSettingsChanged?.Invoke();
             var tpVolumeModeRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -787,13 +790,22 @@ namespace COP_v1.UI
         /// <summary>
         /// Обновить данные Take Profit на панели.
         /// Программное обновление — не вызывает OnTpChanged.
+        /// При <paramref name="tpCount"/> ≥ 2 в подписи — суммарная прибыль по ногам и метка режима (как в <c>SplitVolumesForTps</c>).
         /// </summary>
-        public void UpdateTakeProfit(double price, int digits, double profitDollars, double profitPercent)
+        public void UpdateTakeProfit(double price, int digits, double profitDollars, double profitPercent, int tpCount, TpVolumeMode tpVolumeMode)
         {
             _isUpdatingFromCode = true;
             _tpTextBox.Text = price.ToString("F" + digits);
             _tpTextBox.BackgroundColor = PanelStyles.InputBackground;
-            _tpInfoText.Text = string.Format("{0:F2}$ ({1:F2}%)", profitDollars, profitPercent);
+            if (tpCount <= 1)
+                _tpInfoText.Text = string.Format("{0:F2}$ ({1:F2}%)", profitDollars, profitPercent);
+            else
+            {
+                string modeShort = tpVolumeMode == TpVolumeMode.EqualVolume
+                    ? Localization.Get("TpAllocShortEqualVolume")
+                    : Localization.Get("TpAllocShortEqualProfit");
+                _tpInfoText.Text = Localization.Get("TpInfoMulti", profitDollars, profitPercent, tpCount, modeShort);
+            }
             _isUpdatingFromCode = false;
         }
 
