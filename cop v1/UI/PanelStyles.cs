@@ -3,39 +3,72 @@ using cAlgo.API;
 namespace COP_v1.UI
 {
     /// <summary>
-    /// Стили, цвета и константы размеров для UI-панели.
-    /// Цветовая схема — тёмная тема, аналог Trade Helper v3.9.
+    /// Стили, цвета и константы размеров для UI-панели COP v1.
+    /// Тёмная тема с оранжевым акцентом (референс мини-панели).
     /// </summary>
     public static class PanelStyles
     {
         #region Colors
 
-        /// <summary>Фон панели — тёмно-серый #2D2D2D</summary>
-        public static readonly Color PanelBackground = Color.FromHex("2D2D2D");
+        /// <summary>Фон панели — почти чёрный #0D0D0D</summary>
+        public static readonly Color PanelBackground = Color.FromHex("0D0D0D");
 
-        /// <summary>Фон полей ввода — чуть светлее #3C3C3C</summary>
-        public static readonly Color InputBackground = Color.FromHex("3C3C3C");
+        /// <summary>Фон полей ввода — чуть светлее фона панели #242424</summary>
+        public static readonly Color InputBackground = Color.FromHex("242424");
 
         /// <summary>Основной цвет текста — белый</summary>
         public static readonly Color TextColor = Color.FromHex("FFFFFF");
 
-        /// <summary>Приглушённый текст (подписи, подсказки)</summary>
-        public static readonly Color TextMuted = Color.FromHex("AAAAAA");
+        /// <summary>Приглушённый текст (подписи, мини-заголовок)</summary>
+        public static readonly Color TextMuted = Color.FromHex("666666");
 
-        /// <summary>Активная кнопка — бирюзовый/зелёный #00BFA5</summary>
-        public static readonly Color ButtonActive = Color.FromHex("00BFA5");
+        /// <summary>Активная кнопка / акцент — оранжевый (~на 10% светлее фона #1A для контраста с панелью)</summary>
+        public static readonly Color ButtonActive = Color.FromHex("F46E1A");
 
-        /// <summary>Неактивная кнопка — серый #555555</summary>
-        public static readonly Color ButtonInactive = Color.FromHex("555555");
+        /// <summary>Hover активной кнопки</summary>
+        public static readonly Color ButtonActiveHover = Color.FromHex("FF8538");
 
-        /// <summary>Кнопка ошибки — красный #E53935</summary>
+        /// <summary>Неактивная кнопка (~на 10% светлее #1A1A1A)</summary>
+        public static readonly Color ButtonInactive = Color.FromHex("313131");
+
+        /// <summary>Мини-кнопки: зазор между соседними вдвое меньше прежнего (1.5+1.5 px).</summary>
+        public static readonly Thickness MiniModeButtonMargin = new Thickness(1.5, 2, 1.5, 2);
+
+        /// <summary>Мини-кнопка OK — те же горизонтальные поля, что у LM/MK/FST.</summary>
+        public static readonly Thickness MiniSubmitButtonMargin = new Thickness(1.5, 2, 1.5, 2);
+
+        /// <summary>Кнопка ошибки — красный #E53935 (подсветка полей ввода)</summary>
         public static readonly Color ButtonError = Color.FromHex("E53935");
 
-        /// <summary>Разделители — тёмный #1A1A1A</summary>
-        public static readonly Color SeparatorColor = Color.FromHex("1A1A1A");
+        /// <summary>Кнопка OK при валидном ордере — зелёный (слегка светлее для контраста)</summary>
+        public static readonly Color ButtonSubmitOk = Color.FromHex("19CD5B");
 
-        /// <summary>Цвет hover-состояния неактивной кнопки — светло-серый #777777</summary>
-        public static readonly Color ButtonHover = Color.FromHex("777777");
+        /// <summary>Hover для кнопки OK (валидный ордер)</summary>
+        public static readonly Color ButtonSubmitOkHover = Color.FromHex("3DDC75");
+
+        /// <summary>Кнопка OK при ошибке уровней — тусклый красный (светлее)</summary>
+        public static readonly Color ButtonSubmitErrorDim = Color.FromHex("7A4545");
+
+        /// <summary>Hover для тусклой ошибки (кнопка обычно неактивна)</summary>
+        public static readonly Color ButtonSubmitErrorDimHover = Color.FromHex("8A5252");
+
+        /// <summary>Фон полосы шапки (основная панель, настройки)</summary>
+        public static readonly Color HeaderBarColor = Color.FromHex("1A1A1A");
+
+        /// <summary>Горизонтальные разделители внутри контента</summary>
+        public static readonly Color SeparatorLineColor = Color.FromHex("1F1F1F");
+
+        /// <summary>Рамка внешних панелей</summary>
+        public static readonly Color PanelBorderColor = Color.FromHex("333333");
+
+        /// <summary>Устаревшее имя: совпадает с фоном шапки (совместимость)</summary>
+        public static readonly Color SeparatorColor = HeaderBarColor;
+
+        /// <summary>Hover неактивной кнопки / переключателей (~на 10% светлее)</summary>
+        public static readonly Color ButtonHover = Color.FromHex("3F3F3F");
+
+        /// <summary>Индикатор статуса «активна» в футере мини-панели</summary>
+        public static readonly Color StatusIndicatorGreen = Color.FromHex("00C853");
 
         /// <summary>Цвет линии Entry на графике — синий #0000FF</summary>
         public static readonly Color LineEntry = Color.FromHex("0000FF");
@@ -56,14 +89,32 @@ namespace COP_v1.UI
         /// <summary>Размер основного текста (поля, кнопки).</summary>
         public const int FontSizeNormal = 13;
 
-        /// <summary>Размер мелкого текста (заголовки секций, подписи).</summary>
+        /// <summary>Размер мелкого текста (подписи секций).</summary>
         public const int FontSizeSmall = 11;
+
+        /// <summary>Заголовок в развёрнутой шапке.</summary>
+        public const int FontSizeHeaderExpanded = 12;
+
+        /// <summary>Заголовок в свёрнутой шапке (мини-панель).</summary>
+        public const int FontSizeHeaderMini = 10;
+
+        /// <summary>Текст футера мини-панели.</summary>
+        public const int FontSizeFooter = 9;
 
         /// <summary>Стандартный внутренний отступ.</summary>
         public const int Padding = 6;
 
-        /// <summary>Скруглённые углы рамки панели.</summary>
-        public const int CornerRadius = 4;
+        /// <summary>Скругление внешней рамки карточки — минимальное, чтобы углы не были острыми (слишком большое в cAlgo даёт «двойную» обводку).</summary>
+        public const int CornerRadiusPanel = 3;
+
+        /// <summary>Алиас для скругления панели (историческое имя).</summary>
+        public const int CornerRadius = CornerRadiusPanel;
+
+        /// <summary>Диаметр круглого маркера в шапке.</summary>
+        public const int HeaderAccentDotSize = 8;
+
+        /// <summary>Лёгкое скругление кнопок (меньше, чем раньше).</summary>
+        public const int ButtonCornerSubtle = 2;
 
         /// <summary>Толщина линий на графике.</summary>
         public const int LineThickness = 1;
@@ -104,18 +155,22 @@ namespace COP_v1.UI
 
         /// <summary>
         /// Применить стиль к кнопке режима (Limit / Market).
-        /// Включает hover-эффект: серая кнопка подсвечивается при наведении.
+        /// Включает hover-эффект: неактивная кнопка слегка светлеет при наведении.
         /// </summary>
         /// <param name="btn">Кнопка</param>
-        /// <param name="isActive">true — зелёная (активна), false — серая</param>
+        /// <param name="isActive">true — оранжевая (активна), false — тёмная</param>
         public static void ApplyModeButtonStyle(Button btn, bool isActive)
+        {
+            ApplyModeButtonStyle(btn, isActive, new Thickness(2));
+        }
+
+        /// <summary>То же с заданными отступами (мини-панель — узкие горизонтальные поля).</summary>
+        public static void ApplyModeButtonStyle(Button btn, bool isActive, Thickness margin)
         {
             btn.FontSize = FontSizeNormal;
             btn.FontWeight = FontWeight.Bold;
-            btn.Margin = new Thickness(2);
+            btn.Margin = margin;
 
-            // ВСЕ цвета задаются ТОЛЬКО через Style — иначе hover не работает.
-            // Прямое btn.BackgroundColor перекрывает Style.
             var style = new Style();
             style.Set(ControlProperty.ForegroundColor, TextColor);
             style.Set(ControlProperty.ForegroundColor, TextColor, ControlState.Hover);
@@ -123,7 +178,7 @@ namespace COP_v1.UI
             if (isActive)
             {
                 style.Set(ControlProperty.BackgroundColor, ButtonActive);
-                style.Set(ControlProperty.BackgroundColor, Color.FromHex("00E6C3"), ControlState.Hover);
+                style.Set(ControlProperty.BackgroundColor, ButtonActiveHover, ControlState.Hover);
             }
             else
             {
@@ -132,21 +187,25 @@ namespace COP_v1.UI
             }
 
             btn.Style = style;
+            btn.CornerRadius = new CornerRadius(ButtonCornerSubtle);
         }
 
         /// <summary>
-        /// Применить стиль к кнопке подтверждения ордера.
-        /// Включает hover-эффект для зелёной и красной кнопки.
+        /// Применить стиль к кнопке подтверждения ордера (OK).
         /// </summary>
         /// <param name="btn">Кнопка</param>
-        /// <param name="state">0 = серая (неактивна), 1 = зелёная (валидный ордер), -1 = красная (ошибка)</param>
+        /// <param name="state">0 = серая (неактивна), 1 = зелёная (валидный ордер), -1 = тускло-красная (ошибка)</param>
         public static void ApplySubmitButtonStyle(Button btn, int state)
+        {
+            ApplySubmitButtonStyle(btn, state, new Thickness(2, 6, 2, 2));
+        }
+
+        public static void ApplySubmitButtonStyle(Button btn, int state, Thickness margin)
         {
             btn.FontSize = FontSizeNormal;
             btn.FontWeight = FontWeight.Bold;
-            btn.Margin = new Thickness(2, 6, 2, 2);
+            btn.Margin = margin;
 
-            // ВСЕ цвета задаются ТОЛЬКО через Style — иначе hover не работает
             var style = new Style();
             style.Set(ControlProperty.ForegroundColor, TextColor);
             style.Set(ControlProperty.ForegroundColor, TextColor, ControlState.Hover);
@@ -155,13 +214,13 @@ namespace COP_v1.UI
             {
                 case 1:
                     btn.IsEnabled = true;
-                    style.Set(ControlProperty.BackgroundColor, ButtonActive);
-                    style.Set(ControlProperty.BackgroundColor, Color.FromHex("00E6C3"), ControlState.Hover);
+                    style.Set(ControlProperty.BackgroundColor, ButtonSubmitOk);
+                    style.Set(ControlProperty.BackgroundColor, ButtonSubmitOkHover, ControlState.Hover);
                     break;
                 case -1:
                     btn.IsEnabled = false;
-                    style.Set(ControlProperty.BackgroundColor, ButtonError);
-                    style.Set(ControlProperty.BackgroundColor, Color.FromHex("FF5252"), ControlState.Hover);
+                    style.Set(ControlProperty.BackgroundColor, ButtonSubmitErrorDim);
+                    style.Set(ControlProperty.BackgroundColor, ButtonSubmitErrorDimHover, ControlState.Hover);
                     break;
                 default:
                     btn.IsEnabled = false;
@@ -171,6 +230,7 @@ namespace COP_v1.UI
             }
 
             btn.Style = style;
+            btn.CornerRadius = new CornerRadius(ButtonCornerSubtle);
         }
 
         /// <summary>

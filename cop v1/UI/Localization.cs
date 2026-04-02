@@ -26,7 +26,42 @@ namespace COP_v1.UI
                 [Language.NL] = "COP v1",
                 [Language.PT] = "COP v1"
             },
-
+            ["MiniPanelTitle"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "COP V1 — MINI PANEL",
+                [Language.RU] = "COP V1 — МИНИ-ПАНЕЛЬ",
+                [Language.DE] = "COP V1 — MINI-PANEL",
+                [Language.FR] = "COP V1 — MINI PANEL",
+                [Language.ES] = "COP V1 — MINI PANEL",
+                [Language.IT] = "COP V1 — MINI PANNELLO",
+                [Language.PL] = "COP V1 — MINI PANEL",
+                [Language.NL] = "COP V1 — MINI PANEEL",
+                [Language.PT] = "COP V1 — MINI PAINEL"
+            },
+            ["CollapsedPanelHint"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Subscription",
+                [Language.RU] = "Подписка",
+                [Language.DE] = "Abonnement",
+                [Language.FR] = "Abonnement",
+                [Language.ES] = "Suscripción",
+                [Language.IT] = "Abbonamento",
+                [Language.PL] = "Subskrypcja",
+                [Language.NL] = "Abonnement",
+                [Language.PT] = "Assinatura"
+            },
+            ["StatusActive"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Active",
+                [Language.RU] = "Активна",
+                [Language.DE] = "Aktiv",
+                [Language.FR] = "Actif",
+                [Language.ES] = "Activa",
+                [Language.IT] = "Attiva",
+                [Language.PL] = "Aktywna",
+                [Language.NL] = "Actief",
+                [Language.PT] = "Ativa"
+            },
             // --- Чекбоксы ---
             ["FastOrder"] = new Dictionary<Language, string>
             {

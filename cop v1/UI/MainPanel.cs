@@ -20,10 +20,10 @@ namespace COP_v1.UI
     {
         private readonly Robot _bot;
 
-        // === Корневой контейнер (на график вешаем Border: внутри StackPanel = основная панель + панель настроек) ===
+        // === Корневой контейнер: один внешний Border (_rootWrapper) с рамкой; внутри без второй обводки ===
         private readonly Border _rootWrapper;
         private readonly StackPanel _rootContainer;
-        private readonly Border _rootBorder;
+        private readonly StackPanel _mainPanelRoot;
         private readonly StackPanel _mainStack;
 
         // === Заголовок ===
@@ -79,12 +79,20 @@ namespace COP_v1.UI
         private readonly Button _submitButton;
 
         // === Мини-панель (видна только при свёрнутой панели) ===
-        private const int MiniButtonFontSize = 10;
+        private const int MiniButtonFontSize = 9;
+
+        // Кнопка настроек: только английский корень «Set»; префикс +/− по свёрнутости панели
+        private const string HeaderSettingsLabelEn = "Set";
+        private const string HeaderExpandLabelEn = "Full";
+        private const string HeaderCollapseLabelEn = "Mini";
         private readonly StackPanel _miniPanelStack;
         private readonly Button _miniLimitButton;
         private readonly Button _miniMarketButton;
         private readonly Button _miniSubmitButton;
         private readonly Button _miniFoButton;
+
+        /// <summary>Свёрнутый блок: ряд мини-кнопок, разделитель, футер.</summary>
+        private readonly StackPanel _collapsedChromeStack;
 
         // === Состояние ===
         /// <summary>По умолчанию панель свёрнута.</summary>
@@ -145,54 +153,75 @@ namespace COP_v1.UI
             _panelTransparencyPercent = Math.Max(0, Math.Min(panelTransparencyPercent, 80));
             Color panelBg = PanelStyles.GetPanelBackgroundWithTransparency(_panelTransparencyPercent);
 
-            // ===== Заголовок =====
+            // ===== Заголовок: маркер + «COP v1» + справа блок «…» и «+/−» подряд =====
+            int dot = PanelStyles.HeaderAccentDotSize;
+            var headerAccentDot = new Border
+            {
+                Width = dot,
+                Height = dot,
+                CornerRadius = dot / 2,
+                BackgroundColor = PanelStyles.ButtonActive,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(6, 2, 4, 2)
+            };
+
             _titleText = new TextBlock
             {
                 Text = Localization.Get("PanelTitle"),
                 ForegroundColor = PanelStyles.TextColor,
-                FontSize = PanelStyles.FontSizeNormal,
-                FontWeight = FontWeight.Bold,
+                FontSize = PanelStyles.FontSizeHeaderExpanded,
+                FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 2, 0, 2)
+                Margin = new Thickness(0, 2, 0, 2)
             };
 
             _settingsButton = new Button
             {
-                Text = "...",
-                FontSize = 12,
-                FontWeight = FontWeight.Bold,
+                Text = "+ Set",
+                FontSize = 9,
+                FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 2, 0, 2),
-                Width = 28,
+                Margin = new Thickness(0, 2, 2, 2),
+                Width = 56,
                 Height = 22,
                 Style = PanelStyles.CreateToggleButtonStyle()
             };
             _settingsButton.Click += SettingsButton_Click;
+            _settingsButton.CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle);
 
             _toggleButton = new Button
             {
-                Text = "+",
-                FontSize = 12,
-                FontWeight = FontWeight.Bold,
+                Text = HeaderExpandLabelEn,
+                FontSize = 9,
+                FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right,
                 Margin = new Thickness(0, 2, 4, 2),
-                Width = 28,
+                Width = 50,
                 Height = 22,
                 Style = PanelStyles.CreateToggleButtonStyle()
             };
             _toggleButton.Click += ToggleButton_Click;
+            _toggleButton.CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle);
+
+            // Две служебные кнопки подряд справа (настройки + развернуть/свернуть)
+            var headerActionsRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            headerActionsRow.AddChild(_settingsButton);
+            headerActionsRow.AddChild(_toggleButton);
 
             var headerStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                BackgroundColor = PanelStyles.SeparatorColor,
+                BackgroundColor = PanelStyles.HeaderBarColor,
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
+            headerStack.AddChild(headerAccentDot);
             headerStack.AddChild(_titleText);
-            headerStack.AddChild(_settingsButton);
-            headerStack.AddChild(CreateHeaderSpacer()); // узкий спейсер, чтобы влезли обе кнопки (... и +/−)
-            headerStack.AddChild(_toggleButton);
+            headerStack.AddChild(CreateHeaderSpacer());
+            headerStack.AddChild(headerActionsRow);
 
             // ===== Чекбоксы =====
             _fastOrderCheckBox = new CheckBox
@@ -240,7 +269,10 @@ namespace COP_v1.UI
             checkboxRow.AddChild(_spreadValueText);
 
             // ===== Кнопки режимов =====
-            double halfWidth = (PanelStyles.PanelWidth - 16) / 2;
+            // Учитываем Margin(2) с каждой стороны у кнопок (ApplyModeButtonStyle) и поля ряда
+            const double modeRowSideMargin = 4;
+            double modeInner = PanelStyles.PanelWidth - modeRowSideMargin * 2;
+            double halfWidth = (modeInner - 8) / 2;
 
             _limitButton = new Button
             {
@@ -263,8 +295,8 @@ namespace COP_v1.UI
             var modeRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(2, 4, 2, 4)
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(modeRowSideMargin, 4, modeRowSideMargin, 4)
             };
             modeRow.AddChild(_limitButton);
             modeRow.AddChild(_marketButton);
@@ -437,11 +469,12 @@ namespace COP_v1.UI
             _contentStack.AddChild(CreateSeparator());
             _contentStack.AddChild(_submitButton);
 
-            // ===== Мини-панель (видна только при свёрнутой панели): LM, MK, OK, FST ====
-            // Небольшие отступы по краям; кнопки тоньше; шрифт мельче, чтобы влезал текст (в т.ч. FST)
-            const int miniPanelMarginH = 6;
+            // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
+            const int miniPanelMarginH = 2;
             const int miniPanelMarginV = 4;
-            double miniBtnWidth = (PanelStyles.PanelWidth - miniPanelMarginH * 2 - 20) / 4;
+            // 4 кнопки, MiniModeButtonMargin 1.5+1.5 по горизонтали → rowInner = 4*W + 4*3
+            double rowInner = PanelStyles.PanelWidth - miniPanelMarginH * 2;
+            double miniBtnWidth = (rowInner - 12) / 4.0;
             const int miniBtnHeight = 22;
             _miniLimitButton = new Button
             {
@@ -449,10 +482,10 @@ namespace COP_v1.UI
                 Width = miniBtnWidth,
                 Height = miniBtnHeight,
                 FontWeight = FontWeight.Bold,
-                Margin = new Thickness(2),
+                Margin = PanelStyles.MiniModeButtonMargin,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false);
+            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
             _miniLimitButton.Click += (args) => ActivateLimit();
 
             _miniMarketButton = new Button
@@ -461,10 +494,10 @@ namespace COP_v1.UI
                 Width = miniBtnWidth,
                 Height = miniBtnHeight,
                 FontWeight = FontWeight.Bold,
-                Margin = new Thickness(2),
+                Margin = PanelStyles.MiniModeButtonMargin,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false);
+            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
             _miniMarketButton.Click += (args) => ActivateMarket();
 
             _miniSubmitButton = new Button
@@ -473,7 +506,7 @@ namespace COP_v1.UI
                 Width = miniBtnWidth,
                 Height = miniBtnHeight,
                 FontWeight = FontWeight.Bold,
-                Margin = new Thickness(2),
+                Margin = PanelStyles.MiniSubmitButtonMargin,
                 VerticalAlignment = VerticalAlignment.Center
             };
             ApplyMiniSubmitButtonStyle(0);
@@ -485,10 +518,10 @@ namespace COP_v1.UI
                 Width = miniBtnWidth,
                 Height = miniBtnHeight,
                 FontWeight = FontWeight.Bold,
-                Margin = new Thickness(2),
+                Margin = PanelStyles.MiniModeButtonMargin,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, _fastOrderCheckBox.IsChecked == true);
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, _fastOrderCheckBox.IsChecked == true, PanelStyles.MiniModeButtonMargin);
             _miniFoButton.Click += (args) => SetFastOrder(!IsFastOrder);
 
             _miniLimitButton.FontSize = MiniButtonFontSize;
@@ -507,40 +540,101 @@ namespace COP_v1.UI
             _miniPanelStack.AddChild(_miniSubmitButton);
             _miniPanelStack.AddChild(_miniFoButton);
 
+            var miniFooterSep = new Border
+            {
+                BackgroundColor = PanelStyles.SeparatorLineColor,
+                Height = 1,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(miniPanelMarginH, 0, miniPanelMarginH, 0)
+            };
+
+            int statusDotSize = 6;
+            var statusDot = new Border
+            {
+                Width = statusDotSize,
+                Height = statusDotSize,
+                CornerRadius = statusDotSize / 2,
+                BackgroundColor = PanelStyles.StatusIndicatorGreen,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 4, 0)
+            };
+            var statusText = new TextBlock
+            {
+                Text = Localization.Get("StatusActive"),
+                ForegroundColor = PanelStyles.TextMuted,
+                FontSize = PanelStyles.FontSizeFooter,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var statusRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            statusRow.AddChild(statusDot);
+            statusRow.AddChild(statusText);
+
+            var footerHint = new TextBlock
+            {
+                Text = Localization.Get("CollapsedPanelHint"),
+                ForegroundColor = PanelStyles.TextMuted,
+                FontSize = PanelStyles.FontSizeFooter,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var footerSpacer = new StackPanel
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = System.Math.Max(8, PanelStyles.PanelWidth - miniPanelMarginH * 2 - 130)
+            };
+            var footerRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(miniPanelMarginH, 2, miniPanelMarginH, miniPanelMarginV),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            footerRow.AddChild(footerHint);
+            footerRow.AddChild(footerSpacer);
+            footerRow.AddChild(statusRow);
+
+            _collapsedChromeStack = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            _collapsedChromeStack.AddChild(_miniPanelStack);
+            _collapsedChromeStack.AddChild(miniFooterSep);
+            _collapsedChromeStack.AddChild(footerRow);
+
             // ===== Собираем всё в основной стек =====
             _mainStack = new StackPanel
             {
                 Orientation = Orientation.Vertical
             };
             _mainStack.AddChild(headerStack);
-            _mainStack.AddChild(_miniPanelStack);
+            _mainStack.AddChild(_collapsedChromeStack);
             _mainStack.AddChild(_contentStack);
 
-            // ===== Основная рамка (без выравнивания — оно будет у контейнера) =====
-            _rootBorder = new Border
+            // Основной блок без Border — иначе двойной контур (внешняя оболочка + внутренняя «карточка»)
+            _mainPanelRoot = new StackPanel
             {
-                Child = _mainStack,
-                BackgroundColor = panelBg,
-                BorderColor = PanelStyles.SeparatorColor,
-                BorderThickness = new Thickness(1),
-                CornerRadius = PanelStyles.CornerRadius,
+                Orientation = Orientation.Vertical,
                 Width = PanelStyles.PanelWidth
             };
+            _mainPanelRoot.AddChild(_mainStack);
 
             // ===== Панель настроек (такой же размер и стиль, пока placeholder) =====
             var settingsTitle = new TextBlock
             {
                 Text = Localization.Get("Settings"),
-                ForegroundColor = PanelStyles.TextColor,
-                FontSize = PanelStyles.FontSizeNormal,
-                FontWeight = FontWeight.Bold,
+                ForegroundColor = PanelStyles.TextMuted,
+                FontSize = PanelStyles.FontSizeSmall,
+                FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(4, 6, 0, 6)
             };
             var settingsHeaderRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                BackgroundColor = PanelStyles.SeparatorColor,
+                BackgroundColor = PanelStyles.HeaderBarColor,
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
             settingsHeaderRow.AddChild(settingsTitle);
@@ -549,7 +643,7 @@ namespace COP_v1.UI
             var tpCountLabel = new TextBlock
             {
                 Text = Localization.Get("TpCountLabel"),
-                ForegroundColor = PanelStyles.TextColor,
+                ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(4, 4, 8, 4)
@@ -578,7 +672,7 @@ namespace COP_v1.UI
             var tpVolumeModeLabel = new TextBlock
             {
                 Text = Localization.Get("TpVolumeModeLabel"),
-                ForegroundColor = PanelStyles.TextColor,
+                ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(4, 4, 8, 4)
@@ -605,7 +699,7 @@ namespace COP_v1.UI
             var transparencyLabel = new TextBlock
             {
                 Text = Localization.Get("PanelTransparencyLabel"),
-                ForegroundColor = PanelStyles.TextColor,
+                ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(4, 4, 8, 4)
@@ -636,13 +730,13 @@ namespace COP_v1.UI
             settingsContent.AddChild(tpVolumeModeRow);
             settingsContent.AddChild(transparencyRow);
 
+            // Без собственной рамки: продолжение той же карточки под основной панелью (разделитель уже в контенте)
             _settingsPanelBorder = new Border
             {
                 Child = settingsContent,
                 BackgroundColor = panelBg,
-                BorderColor = PanelStyles.SeparatorColor,
-                BorderThickness = new Thickness(1),
-                CornerRadius = PanelStyles.CornerRadius,
+                BorderThickness = new Thickness(0),
+                CornerRadius = 0,
                 Width = PanelStyles.PanelWidth,
                 IsVisible = false
             };
@@ -651,18 +745,24 @@ namespace COP_v1.UI
             // ===== Корневой контейнер: основная панель + панель настроек =====
             _rootContainer = new StackPanel
             {
-                Orientation = Orientation.Vertical
+                Orientation = Orientation.Vertical,
+                Width = PanelStyles.PanelWidth
             };
-            _rootContainer.AddChild(_rootBorder);
+            _rootContainer.AddChild(_mainPanelRoot);
             _rootContainer.AddChild(_settingsPanelBorder);
 
-            // ===== Обёртка Border (cAlgo: Chart.AddControl принимает Control, StackPanel не наследует Control) =====
+            // ===== Единственная видимая рамка карточки (cAlgo: Chart.AddControl принимает Control) =====
             _rootWrapper = new Border
             {
                 Child = _rootContainer,
                 VerticalAlignment = MapVertical(vPos),
                 HorizontalAlignment = MapHorizontal(hPos),
-                Margin = new Thickness(8)
+                Margin = new Thickness(8),
+                BackgroundColor = panelBg,
+                BorderColor = PanelStyles.PanelBorderColor,
+                BorderThickness = new Thickness(1),
+                CornerRadius = PanelStyles.CornerRadiusPanel,
+                Width = PanelStyles.PanelWidth
             };
 
             // Начальное состояние: по умолчанию свёрнуто; при перезапуске — по сохранённому
@@ -670,17 +770,18 @@ namespace COP_v1.UI
             {
                 _isCollapsed = true;
                 _contentStack.IsVisible = false;
-                _miniPanelStack.IsVisible = true;
-                _toggleButton.Text = "+";
+                _collapsedChromeStack.IsVisible = true;
+                _toggleButton.Text = HeaderExpandLabelEn;
             }
             else
             {
                 _isCollapsed = false;
                 _contentStack.IsVisible = true;
-                _miniPanelStack.IsVisible = false;
-                _toggleButton.Text = "-";
+                _collapsedChromeStack.IsVisible = false;
+                _toggleButton.Text = HeaderCollapseLabelEn;
             }
 
+            UpdateSettingsButtonLabel();
             UpdateRiskUnit();
         }
 
@@ -688,7 +789,7 @@ namespace COP_v1.UI
 
         /// <summary>
         /// Корневой контрол для добавления на график через Chart.AddControl().
-        /// Содержит основную панель и (при открытии) панель настроек под ней.
+        /// Одна рамка и фон у этого Border; основной блок и настройки внутри без второй обводки.
         /// </summary>
         public Border RootControl => _rootWrapper;
 
@@ -727,10 +828,10 @@ namespace COP_v1.UI
             _isUpdatingFromCode = false;
         }
 
-        /// <summary>Кнопка Limit активна (зелёная)?</summary>
+        /// <summary>Кнопка Limit активна (акцентный стиль)?</summary>
         public bool IsLimitActive { get; private set; }
 
-        /// <summary>Кнопка Market активна (зелёная)?</summary>
+        /// <summary>Кнопка Market активна (акцентный стиль)?</summary>
         public bool IsMarketActive { get; private set; }
 
         /// <summary>Количество тейк-профитов: 1, 2 или 3 (из панели настроек).</summary>
@@ -811,7 +912,7 @@ namespace COP_v1.UI
 
         /// <summary>
         /// Обновить кнопку подтверждения: текст, цвет, активность.
-        /// direction: 1=Long, -1=Short, 0=Invalid
+        /// direction: 1=Long, -1=Short, 0=Invalid. Валидно — зелёный OK, ошибка — тускло-красный OK (неактивен).
         /// </summary>
         public void UpdateSubmitButton(int direction, bool isLimit, string symbolName, string volumeLots)
         {
@@ -907,8 +1008,8 @@ namespace COP_v1.UI
             IsMarketActive = !isLimit;
             PanelStyles.ApplyModeButtonStyle(_limitButton, isLimit);
             PanelStyles.ApplyModeButtonStyle(_marketButton, !isLimit);
-            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, isLimit);
-            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, !isLimit);
+            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, isLimit, PanelStyles.MiniModeButtonMargin);
+            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, !isLimit, PanelStyles.MiniModeButtonMargin);
             _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
 
             SetMode(isLimit);
@@ -930,12 +1031,12 @@ namespace COP_v1.UI
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
             PanelStyles.ApplySubmitButtonStyle(_submitButton, 0);
             _submitButton.Text = Localization.Get("PlaceOrder");
-            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false);
-            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false);
+            PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
+            PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
             ApplyMiniSubmitButtonStyle(0);
             _miniSubmitButton.Text = "OK";
             _miniSubmitButton.IsEnabled = false;
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, IsFastOrder);
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, IsFastOrder, PanelStyles.MiniModeButtonMargin);
             _miniLimitButton.FontSize = MiniButtonFontSize;
             _miniMarketButton.FontSize = MiniButtonFontSize;
             _miniSubmitButton.FontSize = MiniButtonFontSize;
@@ -966,8 +1067,9 @@ namespace COP_v1.UI
             _isCollapsed = true;
             s_savedCollapsedState = true;
             _contentStack.IsVisible = false;
-            _miniPanelStack.IsVisible = true;
-            _toggleButton.Text = "+";
+            _collapsedChromeStack.IsVisible = true;
+            _toggleButton.Text = HeaderExpandLabelEn;
+            UpdateSettingsButtonLabel();
         }
 
         /// <summary>
@@ -978,13 +1080,19 @@ namespace COP_v1.UI
             _isCollapsed = false;
             s_savedCollapsedState = false;
             _contentStack.IsVisible = true;
-            _miniPanelStack.IsVisible = false;
-            _toggleButton.Text = "-";
+            _collapsedChromeStack.IsVisible = false;
+            _toggleButton.Text = HeaderCollapseLabelEn;
+            UpdateSettingsButtonLabel();
         }
 
         #endregion
 
         #region Private — обработчики событий
+
+        private void UpdateSettingsButtonLabel()
+        {
+            _settingsButton.Text = _isCollapsed ? "+ " + HeaderSettingsLabelEn : "- " + HeaderSettingsLabelEn;
+        }
 
         private void ToggleButton_Click(ButtonClickEventArgs args)
         {
@@ -1014,7 +1122,7 @@ namespace COP_v1.UI
         {
             _panelTransparencyPercent = Math.Max(0, Math.Min(percent, 80));
             Color panelBg = PanelStyles.GetPanelBackgroundWithTransparency(_panelTransparencyPercent);
-            _rootBorder.BackgroundColor = panelBg;
+            _rootWrapper.BackgroundColor = panelBg;
             _settingsPanelBorder.BackgroundColor = panelBg;
         }
 
@@ -1026,7 +1134,7 @@ namespace COP_v1.UI
             {
                 IsLimitActive = false;
                 PanelStyles.ApplyModeButtonStyle(_limitButton, false);
-                PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false);
+                PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
                 _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
                 OnLimitClicked?.Invoke(false);
             }
@@ -1036,12 +1144,12 @@ namespace COP_v1.UI
                 {
                     IsMarketActive = false;
                     PanelStyles.ApplyModeButtonStyle(_marketButton, false);
-                    PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false);
+                    PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
                     OnMarketClicked?.Invoke(false);
                 }
                 IsLimitActive = true;
                 PanelStyles.ApplyModeButtonStyle(_limitButton, true);
-                PanelStyles.ApplyModeButtonStyle(_miniLimitButton, true);
+                PanelStyles.ApplyModeButtonStyle(_miniLimitButton, true, PanelStyles.MiniModeButtonMargin);
                 _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
                 OnLimitClicked?.Invoke(true);
             }
@@ -1053,7 +1161,7 @@ namespace COP_v1.UI
             {
                 IsMarketActive = false;
                 PanelStyles.ApplyModeButtonStyle(_marketButton, false);
-                PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false);
+                PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
                 _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
                 OnMarketClicked?.Invoke(false);
             }
@@ -1063,12 +1171,12 @@ namespace COP_v1.UI
                 {
                     IsLimitActive = false;
                     PanelStyles.ApplyModeButtonStyle(_limitButton, false);
-                    PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false);
+                    PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
                     OnLimitClicked?.Invoke(false);
                 }
                 IsMarketActive = true;
                 PanelStyles.ApplyModeButtonStyle(_marketButton, true);
-                PanelStyles.ApplyModeButtonStyle(_miniMarketButton, true);
+                PanelStyles.ApplyModeButtonStyle(_miniMarketButton, true, PanelStyles.MiniModeButtonMargin);
                 _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
                 OnMarketClicked?.Invoke(true);
             }
@@ -1084,8 +1192,7 @@ namespace COP_v1.UI
         /// <summary>Стиль мини-кнопки OK: как ApplySubmitButtonStyle, плюс Margin и FontSize для выравнивания с соседними мини-кнопками.</summary>
         private void ApplyMiniSubmitButtonStyle(int state)
         {
-            PanelStyles.ApplySubmitButtonStyle(_miniSubmitButton, state);
-            _miniSubmitButton.Margin = new Thickness(2);
+            PanelStyles.ApplySubmitButtonStyle(_miniSubmitButton, state, PanelStyles.MiniSubmitButtonMargin);
             _miniSubmitButton.FontSize = MiniButtonFontSize;
         }
 
@@ -1093,7 +1200,7 @@ namespace COP_v1.UI
         {
             _isUpdatingFromCode = true;
             _fastOrderCheckBox.IsChecked = value;
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, value);
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, value, PanelStyles.MiniModeButtonMargin);
             _miniFoButton.FontSize = MiniButtonFontSize;
             OnFastOrderToggled?.Invoke(value);
             _isUpdatingFromCode = false;
@@ -1103,7 +1210,7 @@ namespace COP_v1.UI
         {
             if (_isUpdatingFromCode) return;
             bool isChecked = _fastOrderCheckBox.IsChecked == true;
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, isChecked);
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, isChecked, PanelStyles.MiniModeButtonMargin);
             _miniFoButton.FontSize = MiniButtonFontSize;
             OnFastOrderToggled?.Invoke(isChecked);
         }
@@ -1206,7 +1313,7 @@ namespace COP_v1.UI
         {
             return new Border
             {
-                BackgroundColor = PanelStyles.SeparatorColor,
+                BackgroundColor = PanelStyles.SeparatorLineColor,
                 Height = 1,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 2, 0, 2)
@@ -1223,13 +1330,14 @@ namespace COP_v1.UI
             };
         }
 
-        /// <summary>Спейсер для заголовка: уже, чтобы влезли две кнопки (настройки + свёртывание).</summary>
+        /// <summary>Спейсер для заголовка: место под маркер, «COP v1» и блок из двух кнопок справа.</summary>
         private StackPanel CreateHeaderSpacer()
         {
+            // dot + заголовок + две кнопки ~36+36 + отступы
             return new StackPanel
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Width = PanelStyles.PanelWidth - 120  // место под: заголовок ~50 + кнопка 28 + кнопка 28 + отступы
+                Width = System.Math.Max(4, PanelStyles.PanelWidth - 176)
             };
         }
 
