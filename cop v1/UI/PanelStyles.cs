@@ -83,8 +83,8 @@ namespace COP_v1.UI
 
         #region Sizes
 
-        /// <summary>Ширина панели в пикселях (208 = на 20% уже оригинальных 260).</summary>
-        public const double PanelWidth = 208;
+        /// <summary>Ширина панели в пикселях (шире прежних 208 — запас под симметричные поля мини-ряда в cTrader).</summary>
+        public const double PanelWidth = 228;
 
         /// <summary>Размер основного текста (поля, кнопки).</summary>
         public const int FontSizeNormal = 13;
@@ -92,8 +92,8 @@ namespace COP_v1.UI
         /// <summary>Размер мелкого текста (подписи секций).</summary>
         public const int FontSizeSmall = 11;
 
-        /// <summary>Заголовок в развёрнутой шапке.</summary>
-        public const int FontSizeHeaderExpanded = 12;
+        /// <summary>Заголовок в развёрнутой шапке (COP v1).</summary>
+        public const int FontSizeHeaderExpanded = 11;
 
         /// <summary>Заголовок в свёрнутой шапке (мини-панель).</summary>
         public const int FontSizeHeaderMini = 10;
@@ -110,8 +110,11 @@ namespace COP_v1.UI
         /// <summary>Алиас для скругления панели (историческое имя).</summary>
         public const int CornerRadius = CornerRadiusPanel;
 
-        /// <summary>Диаметр круглого маркера в шапке.</summary>
-        public const int HeaderAccentDotSize = 8;
+        /// <summary>Высота кнопок Set / Full-Mini в шапке.</summary>
+        public const int HeaderBarButtonHeight = 19;
+
+        /// <summary>Шрифт кнопок Set / Full-Mini в шапке.</summary>
+        public const int HeaderBarButtonFontSize = 8;
 
         /// <summary>Лёгкое скругление кнопок (меньше, чем раньше).</summary>
         public const int ButtonCornerSubtle = 2;

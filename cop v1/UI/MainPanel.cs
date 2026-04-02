@@ -81,7 +81,7 @@ namespace COP_v1.UI
         // === Мини-панель (видна только при свёрнутой панели) ===
         private const int MiniButtonFontSize = 9;
 
-        // Кнопка настроек: только английский корень «Set»; префикс +/− по свёрнутости панели
+        // Кнопка настроек: корень «Set»; + пока блок настроек закрыт, − когда открыт
         private const string HeaderSettingsLabelEn = "Set";
         private const string HeaderExpandLabelEn = "Full";
         private const string HeaderCollapseLabelEn = "Mini";
@@ -153,37 +153,27 @@ namespace COP_v1.UI
             _panelTransparencyPercent = Math.Max(0, Math.Min(panelTransparencyPercent, 80));
             Color panelBg = PanelStyles.GetPanelBackgroundWithTransparency(_panelTransparencyPercent);
 
-            // ===== Заголовок: маркер + «COP v1» + справа блок «…» и «+/−» подряд =====
-            int dot = PanelStyles.HeaderAccentDotSize;
-            var headerAccentDot = new Border
-            {
-                Width = dot,
-                Height = dot,
-                CornerRadius = dot / 2,
-                BackgroundColor = PanelStyles.ButtonActive,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(6, 2, 4, 2)
-            };
-
+            // ===== Заголовок: «COP v1» по центру зоны слева от кнопок + Set / Full =====
             _titleText = new TextBlock
             {
                 Text = Localization.Get("PanelTitle"),
                 ForegroundColor = PanelStyles.TextColor,
                 FontSize = PanelStyles.FontSizeHeaderExpanded,
                 FontWeight = FontWeight.Normal,
+                HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 2, 0, 2)
+                TextAlignment = TextAlignment.Center
             };
 
             _settingsButton = new Button
             {
                 Text = "+ Set",
-                FontSize = 9,
+                FontSize = PanelStyles.HeaderBarButtonFontSize,
                 FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 2, 2, 2),
-                Width = 56,
-                Height = 22,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 1, 2, 1),
+                Height = PanelStyles.HeaderBarButtonHeight,
                 Style = PanelStyles.CreateToggleButtonStyle()
             };
             _settingsButton.Click += SettingsButton_Click;
@@ -192,36 +182,49 @@ namespace COP_v1.UI
             _toggleButton = new Button
             {
                 Text = HeaderExpandLabelEn,
-                FontSize = 9,
+                FontSize = PanelStyles.HeaderBarButtonFontSize,
                 FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 2, 4, 2),
-                Width = 50,
-                Height = 22,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 1, 4, 1),
+                Height = PanelStyles.HeaderBarButtonHeight,
                 Style = PanelStyles.CreateToggleButtonStyle()
             };
             _toggleButton.Click += ToggleButton_Click;
             _toggleButton.CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle);
 
-            // Две служебные кнопки подряд справа (настройки + развернуть/свернуть)
-            var headerActionsRow = new StackPanel
+            var titleCell = new Grid(1, 1)
             {
-                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            headerActionsRow.AddChild(_settingsButton);
-            headerActionsRow.AddChild(_toggleButton);
+            titleCell.Rows[0].SetHeightToAuto();
+            titleCell.Columns[0].SetWidthInStars(1);
+            titleCell.AddChild(_titleText, 0, 0);
 
-            var headerStack = new StackPanel
+            var headerButtonsGrid = new Grid(1, 2)
             {
-                Orientation = Orientation.Horizontal,
-                BackgroundColor = PanelStyles.HeaderBarColor,
-                HorizontalAlignment = HorizontalAlignment.Stretch
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Center
             };
-            headerStack.AddChild(headerAccentDot);
-            headerStack.AddChild(_titleText);
-            headerStack.AddChild(CreateHeaderSpacer());
-            headerStack.AddChild(headerActionsRow);
+            headerButtonsGrid.Rows[0].SetHeightToAuto();
+            headerButtonsGrid.Columns[0].SetWidthInStars(1);
+            headerButtonsGrid.Columns[1].SetWidthInStars(1);
+            headerButtonsGrid.AddChild(_settingsButton, 0, 0);
+            headerButtonsGrid.AddChild(_toggleButton, 0, 1);
+
+            var headerGrid = new Grid(1, 2)
+            {
+                BackgroundColor = PanelStyles.HeaderBarColor,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = PanelStyles.PanelWidth
+            };
+            headerGrid.Rows[0].SetHeightToAuto();
+            // Зона заголовка (центрирование между левым краем и Set) : зона кнопок — ~1 : 2
+            headerGrid.Columns[0].SetWidthInStars(1);
+            headerGrid.Columns[1].SetWidthInStars(2);
+            headerGrid.AddChild(titleCell, 0, 0);
+            headerGrid.AddChild(headerButtonsGrid, 0, 1);
 
             // ===== Чекбоксы =====
             _fastOrderCheckBox = new CheckBox
@@ -470,10 +473,11 @@ namespace COP_v1.UI
             _contentStack.AddChild(_submitButton);
 
             // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
-            const int miniPanelMarginH = 2;
+            // Ряд уже по ширине, чем панель, и центрируется — слева и справа остаётся одинаковый зазор (cTrader игнорирует правый Margin у StackPanel).
+            const int miniPanelSideInset = 8;
             const int miniPanelMarginV = 4;
-            // 4 кнопки, MiniModeButtonMargin 1.5+1.5 по горизонтали → rowInner = 4*W + 4*3
-            double rowInner = PanelStyles.PanelWidth - miniPanelMarginH * 2;
+            double rowInner = PanelStyles.PanelWidth - 2 * miniPanelSideInset;
+            // 4 кнопки, MiniModeButtonMargin 1.5+1.5 по горизонтали → 4*W + 12 = rowInner
             double miniBtnWidth = (rowInner - 12) / 4.0;
             const int miniBtnHeight = 22;
             _miniLimitButton = new Button
@@ -532,20 +536,28 @@ namespace COP_v1.UI
             _miniPanelStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(miniPanelMarginH, miniPanelMarginV, miniPanelMarginH, miniPanelMarginV),
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Stretch
             };
             _miniPanelStack.AddChild(_miniLimitButton);
             _miniPanelStack.AddChild(_miniMarketButton);
             _miniPanelStack.AddChild(_miniSubmitButton);
             _miniPanelStack.AddChild(_miniFoButton);
 
+            var miniRowWrap = new Border
+            {
+                Width = rowInner,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, miniPanelMarginV, 0, miniPanelMarginV),
+                Child = _miniPanelStack
+            };
+
             var miniFooterSep = new Border
             {
                 BackgroundColor = PanelStyles.SeparatorLineColor,
                 Height = 1,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(miniPanelMarginH, 0, miniPanelMarginH, 0)
+                Margin = new Thickness(miniPanelSideInset, 0, miniPanelSideInset, 0)
             };
 
             int statusDotSize = 6;
@@ -568,48 +580,51 @@ namespace COP_v1.UI
             var statusRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Right
             };
             statusRow.AddChild(statusDot);
             statusRow.AddChild(statusText);
 
             var footerHint = new TextBlock
             {
-                Text = Localization.Get("CollapsedPanelHint"),
+                Text = " " + Localization.Get("CollapsedPanelHint"),
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeFooter,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left
             };
-            var footerSpacer = new StackPanel
+            // Grid: колонка * — подпись слева; колонка Auto — индикатор + Active у правого края (зазор footerRightGap).
+            const int footerRightGap = 4;
+            double footerInnerW = PanelStyles.PanelWidth - miniPanelSideInset - footerRightGap;
+            var footerGrid = new Grid(1, 2)
             {
+                Width = footerInnerW,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Width = System.Math.Max(8, PanelStyles.PanelWidth - miniPanelMarginH * 2 - 130)
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(miniPanelSideInset, 2, footerRightGap, miniPanelMarginV)
             };
-            var footerRow = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(miniPanelMarginH, 2, miniPanelMarginH, miniPanelMarginV),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            footerRow.AddChild(footerHint);
-            footerRow.AddChild(footerSpacer);
-            footerRow.AddChild(statusRow);
+            footerGrid.Rows[0].SetHeightToAuto();
+            footerGrid.Columns[0].SetWidthInStars(1);
+            footerGrid.Columns[1].SetWidthToAuto();
+            footerGrid.AddChild(footerHint, 0, 0);
+            footerGrid.AddChild(statusRow, 0, 1);
 
             _collapsedChromeStack = new StackPanel
             {
                 Orientation = Orientation.Vertical,
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
-            _collapsedChromeStack.AddChild(_miniPanelStack);
+            _collapsedChromeStack.AddChild(miniRowWrap);
             _collapsedChromeStack.AddChild(miniFooterSep);
-            _collapsedChromeStack.AddChild(footerRow);
+            _collapsedChromeStack.AddChild(footerGrid);
 
             // ===== Собираем всё в основной стек =====
             _mainStack = new StackPanel
             {
                 Orientation = Orientation.Vertical
             };
-            _mainStack.AddChild(headerStack);
+            _mainStack.AddChild(headerGrid);
             _mainStack.AddChild(_collapsedChromeStack);
             _mainStack.AddChild(_contentStack);
 
@@ -730,11 +745,11 @@ namespace COP_v1.UI
             settingsContent.AddChild(tpVolumeModeRow);
             settingsContent.AddChild(transparencyRow);
 
-            // Без собственной рамки: продолжение той же карточки под основной панелью (разделитель уже в контенте)
+            // Без собственного фона: фон уже у _rootWrapper на всю высоту карточки; второй слой panelBg давал бы двойное затемнение при прозрачности.
             _settingsPanelBorder = new Border
             {
                 Child = settingsContent,
-                BackgroundColor = panelBg,
+                BackgroundColor = Color.FromArgb(0, PanelStyles.PanelBackground),
                 BorderThickness = new Thickness(0),
                 CornerRadius = 0,
                 Width = PanelStyles.PanelWidth,
@@ -1069,7 +1084,6 @@ namespace COP_v1.UI
             _contentStack.IsVisible = false;
             _collapsedChromeStack.IsVisible = true;
             _toggleButton.Text = HeaderExpandLabelEn;
-            UpdateSettingsButtonLabel();
         }
 
         /// <summary>
@@ -1082,7 +1096,6 @@ namespace COP_v1.UI
             _contentStack.IsVisible = true;
             _collapsedChromeStack.IsVisible = false;
             _toggleButton.Text = HeaderCollapseLabelEn;
-            UpdateSettingsButtonLabel();
         }
 
         #endregion
@@ -1091,7 +1104,7 @@ namespace COP_v1.UI
 
         private void UpdateSettingsButtonLabel()
         {
-            _settingsButton.Text = _isCollapsed ? "+ " + HeaderSettingsLabelEn : "- " + HeaderSettingsLabelEn;
+            _settingsButton.Text = _settingsPanelVisible ? "- " + HeaderSettingsLabelEn : "+ " + HeaderSettingsLabelEn;
         }
 
         private void ToggleButton_Click(ButtonClickEventArgs args)
@@ -1106,6 +1119,7 @@ namespace COP_v1.UI
         {
             _settingsPanelVisible = !_settingsPanelVisible;
             _settingsPanelBorder.IsVisible = _settingsPanelVisible;
+            UpdateSettingsButtonLabel();
         }
 
         private void TransparencyCombo_SelectedItemChanged(ComboBoxSelectedItemChangedEventArgs args)
@@ -1117,13 +1131,12 @@ namespace COP_v1.UI
             OnTransparencyChanged?.Invoke(percent);
         }
 
-        /// <summary>Применить прозрачность фона ко всем панелям (основная + настройки).</summary>
+        /// <summary>Применить прозрачность фона карточки (один слой на <see cref="_rootWrapper"/>).</summary>
         private void ApplyPanelTransparency(int percent)
         {
             _panelTransparencyPercent = Math.Max(0, Math.Min(percent, 80));
             Color panelBg = PanelStyles.GetPanelBackgroundWithTransparency(_panelTransparencyPercent);
             _rootWrapper.BackgroundColor = panelBg;
-            _settingsPanelBorder.BackgroundColor = panelBg;
         }
 
         // Summary-текст настроек TP удалён (раньше отображался справа от риска).
@@ -1327,17 +1340,6 @@ namespace COP_v1.UI
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Width = PanelStyles.PanelWidth - 80
-            };
-        }
-
-        /// <summary>Спейсер для заголовка: место под маркер, «COP v1» и блок из двух кнопок справа.</summary>
-        private StackPanel CreateHeaderSpacer()
-        {
-            // dot + заголовок + две кнопки ~36+36 + отступы
-            return new StackPanel
-            {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Width = System.Math.Max(4, PanelStyles.PanelWidth - 176)
             };
         }
 
