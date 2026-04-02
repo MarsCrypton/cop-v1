@@ -474,7 +474,7 @@ namespace COP_v1.UI
 
             // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
             // Ряд уже по ширине, чем панель, и центрируется — слева и справа остаётся одинаковый зазор (cTrader игнорирует правый Margin у StackPanel).
-            const int miniPanelSideInset = 8;
+            const int miniPanelSideInset = 10;
             const int miniPanelMarginV = 4;
             double rowInner = PanelStyles.PanelWidth - 2 * miniPanelSideInset;
             // 4 кнопки, MiniModeButtonMargin 1.5+1.5 по горизонтали → 4*W + 12 = rowInner
@@ -594,15 +594,13 @@ namespace COP_v1.UI
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Left
             };
-            // Grid: колонка * — подпись слева; колонка Auto — индикатор + Active у правого края (зазор footerRightGap).
-            const int footerRightGap = 4;
-            double footerInnerW = PanelStyles.PanelWidth - miniPanelSideInset - footerRightGap;
+            // Та же ширина и центрирование, что у ряда LM…FST — «Active» с тем же отступом справа, что и FST
             var footerGrid = new Grid(1, 2)
             {
-                Width = footerInnerW,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = rowInner,
+                HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(miniPanelSideInset, 2, footerRightGap, miniPanelMarginV)
+                Margin = new Thickness(0, 2, 0, miniPanelMarginV)
             };
             footerGrid.Rows[0].SetHeightToAuto();
             footerGrid.Columns[0].SetWidthInStars(1);
