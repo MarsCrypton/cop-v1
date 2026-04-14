@@ -377,10 +377,11 @@ namespace COP_v1.UI
             _riskLabel = new TextBlock { Text = Localization.Get("Risk") };
             PanelStyles.ApplyLabelStyle(_riskLabel);
 
+            // ComboBox занимает левую половину (= ширина кнопки Limit выше)
             _riskModeCombo = new ComboBox
             {
-                Width = PanelStyles.RiskComboWidth,
                 Height = riskComboHeight,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = PanelStyles.ST(2)
             };
             _riskModeCombo.AddItem("Percent");
@@ -393,6 +394,7 @@ namespace COP_v1.UI
             {
                 Text = maxRiskPercent.ToString("F2"),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
+                Height = riskComboHeight,
                 Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_riskTextBox);
@@ -407,17 +409,28 @@ namespace COP_v1.UI
                 Margin = PanelStyles.ST(0, 0, 4, 0)
             };
 
-            var riskInlineGrid = new Grid(1, 3)
+            // Правая половина: TextBox (растягивается) + "%" (auto)
+            var riskRightGrid = new Grid(1, 2)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
+            riskRightGrid.Rows[0].SetHeightToAuto();
+            riskRightGrid.Columns[0].SetWidthInStars(1);
+            riskRightGrid.Columns[1].SetWidthToAuto();
+            riskRightGrid.AddChild(_riskTextBox, 0, 0);
+            riskRightGrid.AddChild(_riskUnitText, 0, 1);
+
+            // Внешняя сетка: левая половина = ComboBox, правая = TextBox + "%"
+            // Точно как Limit | Market выше — разделение ровно по середине
+            var riskInlineGrid = new Grid(1, 2)
+            {
+                Width = PanelStyles.ContentWidth
+            };
             riskInlineGrid.Rows[0].SetHeightToAuto();
-            riskInlineGrid.Columns[0].SetWidthToAuto();
+            riskInlineGrid.Columns[0].SetWidthInStars(1);
             riskInlineGrid.Columns[1].SetWidthInStars(1);
-            riskInlineGrid.Columns[2].SetWidthToAuto();
             riskInlineGrid.AddChild(_riskModeCombo, 0, 0);
-            riskInlineGrid.AddChild(_riskTextBox, 0, 1);
-            riskInlineGrid.AddChild(_riskUnitText, 0, 2);
+            riskInlineGrid.AddChild(riskRightGrid, 0, 1);
 
             _riskErrorText = new TextBlock
             {

@@ -16,15 +16,15 @@ namespace COP_v1.UI
             // --- Панель: заголовок ---
             ["PanelTitle"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "COP v1",
-                [Language.RU] = "COP v1",
-                [Language.DE] = "COP v1",
-                [Language.FR] = "COP v1",
-                [Language.ES] = "COP v1",
-                [Language.IT] = "COP v1",
-                [Language.PL] = "COP v1",
-                [Language.NL] = "COP v1",
-                [Language.PT] = "COP v1"
+                [Language.EN] = "[ ' ' ]   COP v1",
+                [Language.RU] = "[ ' ' ]   COP v1",
+                [Language.DE] = "[ ' ' ]   COP v1",
+                [Language.FR] = "[ ' ' ]   COP v1",
+                [Language.ES] = "[ ' ' ]   COP v1",
+                [Language.IT] = "[ ' ' ]   COP v1",
+                [Language.PL] = "[ ' ' ]   COP v1",
+                [Language.NL] = "[ ' ' ]   COP v1",
+                [Language.PT] = "[ ' ' ]   COP v1"
             },
             ["MiniPanelTitle"] = new Dictionary<Language, string>
             {
