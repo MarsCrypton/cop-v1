@@ -278,7 +278,7 @@ namespace COP_v1.UI
 
             // ===== Кнопки режимов =====
             // Учитываем Margin(2) с каждой стороны у кнопок (ApplyModeButtonStyle) и поля ряда
-            double modeRowSideMargin = PanelStyles.S(4);
+            double modeRowSideMargin = PanelStyles.S(2);
             double modeInner = PanelStyles.PanelWidth - 2 * modeRowSideMargin;
             double halfWidth = (modeInner - PanelStyles.S(8)) / 2;
 
@@ -313,7 +313,6 @@ namespace COP_v1.UI
             var sep1 = CreateSeparator();
 
             // ===== Блок риска (в одну строку) =====
-            double innerWidth = PanelStyles.PanelWidth - PanelStyles.S(16);
             double riskComboWidth = PanelStyles.S(84);
             double riskComboHeight = PanelStyles.S(22);
             _riskLabel = new TextBlock { Text = Localization.Get("Risk") };
@@ -334,7 +333,7 @@ namespace COP_v1.UI
             _riskTextBox = new TextBox
             {
                 Text = maxRiskPercent.ToString("F2"),
-                Width = innerWidth - riskComboWidth - PanelStyles.S(28) - PanelStyles.S(12),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_riskTextBox);
@@ -349,14 +348,17 @@ namespace COP_v1.UI
                 Margin = PanelStyles.ST(0, 0, 4, 0)
             };
 
-            var riskInlineRow = new StackPanel
+            var riskInlineGrid = new Grid(1, 3)
             {
-                Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
-            riskInlineRow.AddChild(_riskModeCombo);
-            riskInlineRow.AddChild(_riskTextBox);
-            riskInlineRow.AddChild(_riskUnitText);
+            riskInlineGrid.Rows[0].SetHeightToAuto();
+            riskInlineGrid.Columns[0].SetWidthToAuto();
+            riskInlineGrid.Columns[1].SetWidthInStars(1);
+            riskInlineGrid.Columns[2].SetWidthToAuto();
+            riskInlineGrid.AddChild(_riskModeCombo, 0, 0);
+            riskInlineGrid.AddChild(_riskTextBox, 0, 1);
+            riskInlineGrid.AddChild(_riskUnitText, 0, 2);
 
             _riskErrorText = new TextBlock
             {
@@ -368,17 +370,15 @@ namespace COP_v1.UI
                 IsVisible = false
             };
 
-            var riskColumn = new StackPanel { Orientation = Orientation.Vertical };
-            riskColumn.AddChild(_riskLabel);
-            riskColumn.AddChild(riskInlineRow);
-            riskColumn.AddChild(_riskErrorText);
-            var riskRow = new StackPanel
+            var riskColumn = new StackPanel
             {
-                Orientation = Orientation.Horizontal,
+                Orientation = Orientation.Vertical,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = PanelStyles.ST(2)
             };
-            riskRow.AddChild(riskColumn);
+            riskColumn.AddChild(_riskLabel);
+            riskColumn.AddChild(riskInlineGrid);
+            riskColumn.AddChild(_riskErrorText);
 
             // ===== Блок цены входа =====
             _priceLabel = new TextBlock { Text = Localization.Get("LimitOrder") };
@@ -389,7 +389,7 @@ namespace COP_v1.UI
                 Text = "",
                 IsReadOnly = true,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(4, 2, 4, 2)
+                Margin = PanelStyles.ST(2, 2, 2, 2)
             };
             PanelStyles.ApplyTextBoxStyle(_priceTextBox);
             _priceTextBox.TextChanged += PriceTextBox_TextChanged;
@@ -397,7 +397,7 @@ namespace COP_v1.UI
             var sep2 = CreateSeparator();
 
             // ===== Блок SL / TP =====
-            double colWidth = (PanelStyles.PanelWidth - PanelStyles.S(16)) / 2;
+            double colWidth = (PanelStyles.PanelWidth - PanelStyles.S(4)) / 2;
 
             // -- SL --
             _slLabel = new TextBlock { Text = Localization.Get("StopLoss") };
@@ -470,7 +470,7 @@ namespace COP_v1.UI
             _contentStack.AddChild(checkboxRow);
             _contentStack.AddChild(modeRow);
             _contentStack.AddChild(sep1);
-            _contentStack.AddChild(riskRow);
+            _contentStack.AddChild(riskColumn);
             _contentStack.AddChild(sep2);
             _contentStack.AddChild(_priceLabel);
             _contentStack.AddChild(_priceTextBox);

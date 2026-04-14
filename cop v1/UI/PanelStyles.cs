@@ -336,6 +336,7 @@ namespace COP_v1.UI
             tb.ForegroundColor = TextMuted;
             tb.FontSize = FontSizeSmall;
             tb.Margin = ST(2, 4, 2, 0);
+            tb.TextAlignment = TextAlignment.Center;
         }
 
         /// <summary>
