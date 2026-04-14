@@ -1,3 +1,4 @@
+using System;
 using cAlgo.API;
 
 namespace COP_v1.UI
@@ -5,9 +6,60 @@ namespace COP_v1.UI
     /// <summary>
     /// Стили, цвета и константы размеров для UI-панели COP v1.
     /// Тёмная тема с оранжевым акцентом (референс мини-панели).
+    /// Размеры панели масштабируются через <see cref="SetScalePercent"/> (по умолчанию 100%).
     /// </summary>
     public static class PanelStyles
     {
+        #region UI scale (Step 1)
+
+        private static int _scalePercent = 100;
+
+        /// <summary>Текущий коэффициент масштаба (1.0 = 100%).</summary>
+        public static double UiScale => _scalePercent / 100.0;
+
+        /// <summary>Текущий масштаб в процентах (70–150 после нормализации).</summary>
+        public static int ScalePercent => _scalePercent;
+
+        /// <summary>
+        /// Задать масштаб панели в процентах. Значение ограничивается диапазоном 70–150.
+        /// До вызова используется 100%.
+        /// </summary>
+        public static void SetScalePercent(int percent)
+        {
+            if (percent < 70) percent = 70;
+            if (percent > 150) percent = 150;
+            _scalePercent = percent;
+        }
+
+        /// <summary>Масштабировать длину в пикселях (double).</summary>
+        public static double S(double value) => value * UiScale;
+
+        /// <summary>Масштабировать целочисленный размер с округлением (минимум 1 для положительных базовых значений).</summary>
+        public static int SI(int value)
+        {
+            if (value <= 0)
+                return value;
+            return Math.Max(1, (int)Math.Round(value * UiScale));
+        }
+
+        /// <summary>Масштабировать размер шрифта (минимум 8 px для читаемости).</summary>
+        public static int SF(int fontSize)
+        {
+            int scaled = (int)Math.Round(fontSize * UiScale);
+            return Math.Max(8, scaled);
+        }
+
+        /// <summary>Масштабировать одинаковые отступы со всех сторон.</summary>
+        public static Thickness ST(double uniform) => ST(uniform, uniform, uniform, uniform);
+
+        /// <summary>Масштабировать отступы по сторонам.</summary>
+        public static Thickness ST(double left, double top, double right, double bottom)
+        {
+            return new Thickness(S(left), S(top), S(right), S(bottom));
+        }
+
+        #endregion
+
         #region Colors
 
         /// <summary>Фон панели — почти чёрный #0D0D0D</summary>
@@ -32,10 +84,10 @@ namespace COP_v1.UI
         public static readonly Color ButtonInactive = Color.FromHex("313131");
 
         /// <summary>Мини-кнопки: зазор между соседними вдвое меньше прежнего (1.5+1.5 px).</summary>
-        public static readonly Thickness MiniModeButtonMargin = new Thickness(1.5, 2, 1.5, 2);
+        public static Thickness MiniModeButtonMargin => ST(1.5, 2, 1.5, 2);
 
         /// <summary>Мини-кнопка OK — те же горизонтальные поля, что у LM/MK/FST.</summary>
-        public static readonly Thickness MiniSubmitButtonMargin = new Thickness(1.5, 2, 1.5, 2);
+        public static Thickness MiniSubmitButtonMargin => ST(1.5, 2, 1.5, 2);
 
         /// <summary>Кнопка ошибки — красный #E53935 (подсветка полей ввода)</summary>
         public static readonly Color ButtonError = Color.FromHex("E53935");
@@ -81,45 +133,61 @@ namespace COP_v1.UI
 
         #endregion
 
-        #region Sizes
+        #region Sizes (базовые значения при масштабе 100%)
+
+        private const double BasePanelWidth = 228;
+        private const int BaseFontSizeNormal = 13;
+        private const int BaseFontSizeSmall = 11;
+        private const int BaseFontSizeHeaderExpanded = 11;
+        private const int BaseFontSizeHeaderMini = 10;
+        private const int BaseFontSizeFooter = 9;
+        private const int BasePadding = 6;
+        private const int BaseCornerRadiusPanel = 3;
+        private const int BaseHeaderBarButtonHeight = 19;
+        private const int BaseHeaderBarButtonFontSize = 8;
+        private const int BaseButtonCornerSubtle = 2;
+
+        #endregion
+
+        #region Sizes (масштабируемые свойства — при 100% совпадают с прежними константами)
 
         /// <summary>Ширина панели в пикселях (шире прежних 208 — запас под симметричные поля мини-ряда в cTrader).</summary>
-        public const double PanelWidth = 228;
+        public static double PanelWidth => S(BasePanelWidth);
 
         /// <summary>Размер основного текста (поля, кнопки).</summary>
-        public const int FontSizeNormal = 13;
+        public static int FontSizeNormal => SF(BaseFontSizeNormal);
 
         /// <summary>Размер мелкого текста (подписи секций).</summary>
-        public const int FontSizeSmall = 11;
+        public static int FontSizeSmall => SF(BaseFontSizeSmall);
 
         /// <summary>Заголовок в развёрнутой шапке (COP v1).</summary>
-        public const int FontSizeHeaderExpanded = 11;
+        public static int FontSizeHeaderExpanded => SF(BaseFontSizeHeaderExpanded);
 
         /// <summary>Заголовок в свёрнутой шапке (мини-панель).</summary>
-        public const int FontSizeHeaderMini = 10;
+        public static int FontSizeHeaderMini => SF(BaseFontSizeHeaderMini);
 
         /// <summary>Текст футера мини-панели.</summary>
-        public const int FontSizeFooter = 9;
+        public static int FontSizeFooter => SF(BaseFontSizeFooter);
 
         /// <summary>Стандартный внутренний отступ.</summary>
-        public const int Padding = 6;
+        public static int Padding => SI(BasePadding);
 
         /// <summary>Скругление внешней рамки карточки — минимальное, чтобы углы не были острыми (слишком большое в cAlgo даёт «двойную» обводку).</summary>
-        public const int CornerRadiusPanel = 3;
+        public static int CornerRadiusPanel => SI(BaseCornerRadiusPanel);
 
         /// <summary>Алиас для скругления панели (историческое имя).</summary>
-        public const int CornerRadius = CornerRadiusPanel;
+        public static int CornerRadius => CornerRadiusPanel;
 
         /// <summary>Высота кнопок Set / Full-Mini в шапке.</summary>
-        public const int HeaderBarButtonHeight = 19;
+        public static int HeaderBarButtonHeight => SI(BaseHeaderBarButtonHeight);
 
         /// <summary>Шрифт кнопок Set / Full-Mini в шапке.</summary>
-        public const int HeaderBarButtonFontSize = 8;
+        public static int HeaderBarButtonFontSize => SF(BaseHeaderBarButtonFontSize);
 
         /// <summary>Лёгкое скругление кнопок (меньше, чем раньше).</summary>
-        public const int ButtonCornerSubtle = 2;
+        public static int ButtonCornerSubtle => SI(BaseButtonCornerSubtle);
 
-        /// <summary>Толщина линий на графике.</summary>
+        /// <summary>Толщина линий на графике (не масштабируется — объекты графика).</summary>
         public const int LineThickness = 1;
 
         /// <summary>
@@ -149,7 +217,7 @@ namespace COP_v1.UI
             if (transparencyPercent >= 100)
                 transparencyPercent = 99;
 
-            int alpha = (int)System.Math.Round(255.0 * (100 - transparencyPercent) / 100.0);
+            int alpha = (int)Math.Round(255.0 * (100 - transparencyPercent) / 100.0);
             if (alpha < 0) alpha = 0;
             if (alpha > 255) alpha = 255;
 
@@ -164,7 +232,7 @@ namespace COP_v1.UI
         /// <param name="isActive">true — оранжевая (активна), false — тёмная</param>
         public static void ApplyModeButtonStyle(Button btn, bool isActive)
         {
-            ApplyModeButtonStyle(btn, isActive, new Thickness(2));
+            ApplyModeButtonStyle(btn, isActive, ST(2));
         }
 
         /// <summary>То же с заданными отступами (мини-панель — узкие горизонтальные поля).</summary>
@@ -200,7 +268,7 @@ namespace COP_v1.UI
         /// <param name="state">0 = серая (неактивна), 1 = зелёная (валидный ордер), -1 = тускло-красная (ошибка)</param>
         public static void ApplySubmitButtonStyle(Button btn, int state)
         {
-            ApplySubmitButtonStyle(btn, state, new Thickness(2, 6, 2, 2));
+            ApplySubmitButtonStyle(btn, state, ST(2, 6, 2, 2));
         }
 
         public static void ApplySubmitButtonStyle(Button btn, int state, Thickness margin)
@@ -244,7 +312,7 @@ namespace COP_v1.UI
             tb.BackgroundColor = InputBackground;
             tb.ForegroundColor = TextColor;
             tb.FontSize = FontSizeNormal;
-            tb.Margin = new Thickness(2);
+            tb.Margin = ST(2);
         }
 
         /// <summary>
@@ -267,7 +335,7 @@ namespace COP_v1.UI
         {
             tb.ForegroundColor = TextMuted;
             tb.FontSize = FontSizeSmall;
-            tb.Margin = new Thickness(2, 4, 2, 0);
+            tb.Margin = ST(2, 4, 2, 0);
         }
 
         /// <summary>
@@ -277,7 +345,7 @@ namespace COP_v1.UI
         {
             tb.ForegroundColor = TextColor;
             tb.FontSize = FontSizeSmall;
-            tb.Margin = new Thickness(2, 0, 2, 2);
+            tb.Margin = ST(2, 0, 2, 2);
         }
 
         #endregion

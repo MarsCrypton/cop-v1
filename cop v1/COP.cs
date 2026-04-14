@@ -26,6 +26,9 @@ namespace COP_v1
         [Parameter("Panel transparency %", Group = "Panel alignment", DefaultValue = 0, MinValue = 0, MaxValue = 80)]
         public int PanelTransparencyPercent { get; set; }
 
+        [Parameter("Panel scale %", Group = "Panel alignment", DefaultValue = 100, MinValue = 70, MaxValue = 150)]
+        public int PanelScalePercent { get; set; }
+
         #endregion
 
         #region Parameters — Default trade parameters
@@ -82,6 +85,25 @@ namespace COP_v1
             if (_currentRiskMode == RiskMode.Unknown)
                 _currentRiskMode = RiskMode;
 
+            // Масштаб UI панели: та же схема приоритета, что и для прозрачности (параметр ↔ LocalStorage).
+            int savedScale = LoadSavedScalePercent();
+            int panelScale;
+            if (savedScale < 0)
+            {
+                panelScale = PanelScalePercent;
+            }
+            else if (savedScale != PanelScalePercent)
+            {
+                panelScale = PanelScalePercent;
+                SaveScalePercent(panelScale);
+            }
+            else
+            {
+                panelScale = savedScale;
+            }
+
+            PanelStyles.SetScalePercent(panelScale);
+
             // Создать и отобразить панель
             // Прозрачность панели: синхронизация "шестерёнка" ↔ in-panel настройки.
             // Правило:
@@ -129,18 +151,7 @@ namespace COP_v1
                         RecalculateAll();
                 });
 
-            // Подписаться на события панели
-            _mainPanel.OnLimitClicked += HandleLimitClicked;
-            _mainPanel.OnMarketClicked += HandleMarketClicked;
-            _mainPanel.OnSubmitClicked += HandleSubmitClicked;
-            _mainPanel.OnRiskChanged += HandleRiskChanged;
-            _mainPanel.OnRiskModeChanged += HandleRiskModeChanged;
-            _mainPanel.OnFastOrderToggled += HandleFastOrderToggled;
-            _mainPanel.OnPriceChanged += HandlePriceFieldChanged;
-            _mainPanel.OnSlChanged += HandleSlFieldChanged;
-            _mainPanel.OnTpChanged += HandleTpFieldChanged;
-            _mainPanel.OnTransparencyChanged += SaveTransparency;
-            _mainPanel.OnTpAllocationSettingsChanged += HandleTpAllocationSettingsChanged;
+            SubscribePanelEvents();
 
             // Подписаться на изменение линий
             _chartLineManager.OnLinesChanged += HandleLinesChanged;
@@ -181,19 +192,7 @@ namespace COP_v1
             // Смена ТФ перезапускает экземпляр cBot — сохраняем уровни до RemoveAllLines (иначе память и график обнуляются).
             SaveChartLevelsDraft();
 
-            // Отписаться от событий панели
-            if (_mainPanel != null)
-            {
-                _mainPanel.OnLimitClicked -= HandleLimitClicked;
-                _mainPanel.OnMarketClicked -= HandleMarketClicked;
-                _mainPanel.OnSubmitClicked -= HandleSubmitClicked;
-                _mainPanel.OnRiskChanged -= HandleRiskChanged;
-                _mainPanel.OnFastOrderToggled -= HandleFastOrderToggled;
-                _mainPanel.OnPriceChanged -= HandlePriceFieldChanged;
-                _mainPanel.OnSlChanged -= HandleSlFieldChanged;
-                _mainPanel.OnTpChanged -= HandleTpFieldChanged;
-                _mainPanel.OnTpAllocationSettingsChanged -= HandleTpAllocationSettingsChanged;
-            }
+            UnsubscribePanelEvents();
 
             // Отписаться от ChartLineManager и удалить линии
             if (_chartLineManager != null)
@@ -532,12 +531,43 @@ namespace COP_v1
 
         private const string TransparencyStorageKey = "COP PanelTransparencyPercent";
 
+        private const string ScaleStorageKey = "COP PanelScalePercent";
+
+        /// <summary>
+        /// Загрузить сохранённый масштаб панели (70–150 %). Если нет или невалидно — <c>-1</c>.
+        /// </summary>
+        private int LoadSavedScalePercent()
+        {
+            try
+            {
+                string saved = LocalStorage.GetString(ScaleStorageKey, LocalStorageScope.Device);
+                if (string.IsNullOrWhiteSpace(saved)) return -1;
+                saved = saved.Trim();
+                if (int.TryParse(saved, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
+                    return Math.Max(70, Math.Min(result, 150));
+            }
+            catch { }
+            return -1;
+        }
+
+        private void SaveScalePercent(int percent)
+        {
+            try
+            {
+                int clamped = Math.Max(70, Math.Min(percent, 150));
+                LocalStorage.SetString(ScaleStorageKey, clamped.ToString(CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.Flush(LocalStorageScope.Device);
+            }
+            catch { }
+        }
+
         private int LoadSavedTransparency()
         {
             try
             {
                 string saved = LocalStorage.GetString(TransparencyStorageKey, LocalStorageScope.Device);
                 if (string.IsNullOrWhiteSpace(saved)) return -1;
+                saved = saved.Trim();
                 if (int.TryParse(saved, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
                     return Math.Max(0, Math.Min(result, 80));
             }
@@ -1265,6 +1295,121 @@ namespace COP_v1
             _mainPanel.Collapse();
             _isLimitMode = null;
             _lastDirection = OrderDirection.Invalid;
+        }
+
+        #endregion
+
+        #region MainPanel — масштаб (пересоздание UI)
+
+        private struct PanelUiSnapshot
+        {
+            public int TransparencyPercent;
+            public bool SettingsOpen;
+            public string RiskText;
+            public bool FastOrder;
+            public int TpCount;
+            public TpVolumeMode TpVolumeMode;
+            public bool Collapsed;
+            public bool? LimitMode;
+        }
+
+        private void SubscribePanelEvents()
+        {
+            _mainPanel.OnLimitClicked += HandleLimitClicked;
+            _mainPanel.OnMarketClicked += HandleMarketClicked;
+            _mainPanel.OnSubmitClicked += HandleSubmitClicked;
+            _mainPanel.OnRiskChanged += HandleRiskChanged;
+            _mainPanel.OnRiskModeChanged += HandleRiskModeChanged;
+            _mainPanel.OnFastOrderToggled += HandleFastOrderToggled;
+            _mainPanel.OnPriceChanged += HandlePriceFieldChanged;
+            _mainPanel.OnSlChanged += HandleSlFieldChanged;
+            _mainPanel.OnTpChanged += HandleTpFieldChanged;
+            _mainPanel.OnTransparencyChanged += SaveTransparency;
+            _mainPanel.OnTpAllocationSettingsChanged += HandleTpAllocationSettingsChanged;
+            _mainPanel.OnScaleChanged += HandlePanelScaleChanged;
+        }
+
+        private void UnsubscribePanelEvents()
+        {
+            if (_mainPanel == null)
+                return;
+            _mainPanel.OnLimitClicked -= HandleLimitClicked;
+            _mainPanel.OnMarketClicked -= HandleMarketClicked;
+            _mainPanel.OnSubmitClicked -= HandleSubmitClicked;
+            _mainPanel.OnRiskChanged -= HandleRiskChanged;
+            _mainPanel.OnRiskModeChanged -= HandleRiskModeChanged;
+            _mainPanel.OnFastOrderToggled -= HandleFastOrderToggled;
+            _mainPanel.OnPriceChanged -= HandlePriceFieldChanged;
+            _mainPanel.OnSlChanged -= HandleSlFieldChanged;
+            _mainPanel.OnTpChanged -= HandleTpFieldChanged;
+            _mainPanel.OnTransparencyChanged -= SaveTransparency;
+            _mainPanel.OnTpAllocationSettingsChanged -= HandleTpAllocationSettingsChanged;
+            _mainPanel.OnScaleChanged -= HandlePanelScaleChanged;
+        }
+
+        private PanelUiSnapshot CapturePanelUiSnapshot()
+        {
+            return new PanelUiSnapshot
+            {
+                TransparencyPercent = _mainPanel.CurrentTransparencyPercent,
+                SettingsOpen = _mainPanel.IsSettingsPanelVisible,
+                RiskText = _mainPanel.RiskText,
+                FastOrder = _mainPanel.IsFastOrder,
+                TpCount = _mainPanel.TpCount,
+                TpVolumeMode = _mainPanel.TpVolumeMode,
+                Collapsed = _mainPanel.CollapsedState,
+                LimitMode = _isLimitMode
+            };
+        }
+
+        private void RestoreMainPanelUi(PanelUiSnapshot s)
+        {
+            _mainPanel.RestoreSettingsPanelOpenState(s.SettingsOpen);
+            _mainPanel.RestoreTpComboSettings(s.TpCount, s.TpVolumeMode);
+            _mainPanel.SetRiskMode(_currentRiskMode);
+            if (!string.IsNullOrWhiteSpace(s.RiskText))
+                _mainPanel.SetRiskText(s.RiskText);
+            _mainPanel.SetFastOrderChecked(s.FastOrder);
+
+            if (s.LimitMode == null)
+                _mainPanel.ResetToIdle();
+            else
+                _mainPanel.ApplyRestoredTradingMode(s.LimitMode == true, s.TpCount);
+
+            _mainPanel.ClearRiskError();
+            _mainPanel.UpdateSpread(Symbol.Spread / Symbol.PipSize);
+        }
+
+        private void HandlePanelScaleChanged(int percent)
+        {
+            int clamped = Math.Max(70, Math.Min(150, percent));
+            if (clamped == PanelStyles.ScalePercent)
+                return;
+
+            if (_fastOrderHandler != null && _fastOrderHandler.IsActive)
+            {
+                ClearChartLevelsDraft();
+                _fastOrderHandler.Cancel();
+                _isLimitMode = null;
+            }
+
+            PanelUiSnapshot snapshot = CapturePanelUiSnapshot();
+
+            SaveScalePercent(clamped);
+            PanelStyles.SetScalePercent(clamped);
+
+            UnsubscribePanelEvents();
+            Chart.RemoveControl(_mainPanel.RootControl);
+            _mainPanel = null;
+
+            MainPanel.SetSavedCollapsedStateForRestore(snapshot.Collapsed);
+            _mainPanel = new MainPanel(this, VPosition, HPosition, MaxRiskPercent, FastOrderMode == YesNo.Yes, snapshot.TransparencyPercent);
+            Chart.AddControl(_mainPanel.RootControl);
+            SubscribePanelEvents();
+            RestoreMainPanelUi(snapshot);
+
+            if (_chartLineManager != null && _isLimitMode != null && !_fastOrderHandler.IsActive)
+                RecalculateAll();
         }
 
         #endregion

@@ -432,6 +432,18 @@ namespace COP_v1.UI
                 [Language.NL] = "Paneeltransparantie",
                 [Language.PT] = "Transparência do painel"
             },
+            ["PanelScaleLabel"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Panel scale",
+                [Language.RU] = "Масштаб панели",
+                [Language.DE] = "Panel-Skalierung",
+                [Language.FR] = "Échelle du panneau",
+                [Language.ES] = "Escala del panel",
+                [Language.IT] = "Scala pannello",
+                [Language.PL] = "Skala panelu",
+                [Language.NL] = "Paneelschaal",
+                [Language.PT] = "Escala do painel"
+            },
             ["TpVolumeEqualVolume"] = new Dictionary<Language, string>
             {
                 [Language.EN] = "Equal volume",

@@ -37,9 +37,13 @@ namespace COP_v1.UI
         private readonly ComboBox _tpCountCombo;
         private readonly ComboBox _tpVolumeModeCombo;
         private readonly ComboBox _transparencyCombo;
+        private readonly ComboBox _scaleCombo;
 
         /// <summary>Вызывается при изменении прозрачности фона панели из настроек. Аргумент: новый процент (0–80).</summary>
         public event Action<int> OnTransparencyChanged;
+
+        /// <summary>Вызывается при выборе масштаба панели в настройках (70–150 %).</summary>
+        public event Action<int> OnScaleChanged;
 
         /// <summary>Текущий процент прозрачности фона панелей (0–80).</summary>
         private int _panelTransparencyPercent;
@@ -79,7 +83,8 @@ namespace COP_v1.UI
         private readonly Button _submitButton;
 
         // === Мини-панель (видна только при свёрнутой панели) ===
-        private const int MiniButtonFontSize = 9;
+        /// <summary>Базовый размер шрифта мини-кнопок (9 px при 100 %) — через <see cref="PanelStyles.SF"/>.</summary>
+        private static int MiniButtonFontSize => PanelStyles.SF(9);
 
         // Кнопка настроек: корень «Set»; + пока блок настроек закрыт, − когда открыт
         private const string HeaderSettingsLabelEn = "Set";
@@ -172,7 +177,7 @@ namespace COP_v1.UI
                 FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(0, 1, 2, 1),
+                Margin = PanelStyles.ST(0, 1, 2, 1),
                 Height = PanelStyles.HeaderBarButtonHeight,
                 Style = PanelStyles.CreateToggleButtonStyle()
             };
@@ -186,7 +191,7 @@ namespace COP_v1.UI
                 FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(0, 1, 4, 1),
+                Margin = PanelStyles.ST(0, 1, 4, 1),
                 Height = PanelStyles.HeaderBarButtonHeight,
                 Style = PanelStyles.CreateToggleButtonStyle()
             };
@@ -231,7 +236,7 @@ namespace COP_v1.UI
             {
                 IsChecked = fastOrderMode,
                 ForegroundColor = PanelStyles.TextColor,
-                Margin = new Thickness(4, 4, 8, 4)
+                Margin = PanelStyles.ST(4, 4, 8, 4)
             };
             _fastOrderCheckBox.Click += FastOrderCheckBox_Click;
 
@@ -241,7 +246,7 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextColor,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 10, 0)
+                Margin = PanelStyles.ST(0, 0, 10, 0)
             };
 
             var spreadLabel = new TextBlock
@@ -250,7 +255,7 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextColor,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 2, 0)
+                Margin = PanelStyles.ST(0, 0, 2, 0)
             };
 
             _spreadValueText = new TextBlock
@@ -264,7 +269,7 @@ namespace COP_v1.UI
             var checkboxRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(2, 2, 2, 2)
+                Margin = PanelStyles.ST(2)
             };
             checkboxRow.AddChild(_fastOrderCheckBox);
             checkboxRow.AddChild(fastOrderLabel);
@@ -273,15 +278,15 @@ namespace COP_v1.UI
 
             // ===== Кнопки режимов =====
             // Учитываем Margin(2) с каждой стороны у кнопок (ApplyModeButtonStyle) и поля ряда
-            const double modeRowSideMargin = 4;
-            double modeInner = PanelStyles.PanelWidth - modeRowSideMargin * 2;
-            double halfWidth = (modeInner - 8) / 2;
+            double modeRowSideMargin = PanelStyles.S(4);
+            double modeInner = PanelStyles.PanelWidth - 2 * modeRowSideMargin;
+            double halfWidth = (modeInner - PanelStyles.S(8)) / 2;
 
             _limitButton = new Button
             {
                 Text = Localization.Get("Limit"),
                 Width = halfWidth,
-                Height = 32
+                Height = PanelStyles.S(32)
             };
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             _limitButton.Click += LimitButton_Click;
@@ -290,7 +295,7 @@ namespace COP_v1.UI
             {
                 Text = Localization.Get("Market"),
                 Width = halfWidth,
-                Height = 32
+                Height = PanelStyles.S(32)
             };
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
             _marketButton.Click += MarketButton_Click;
@@ -299,7 +304,7 @@ namespace COP_v1.UI
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(modeRowSideMargin, 4, modeRowSideMargin, 4)
+                Margin = PanelStyles.ST(modeRowSideMargin, PanelStyles.S(4), modeRowSideMargin, PanelStyles.S(4))
             };
             modeRow.AddChild(_limitButton);
             modeRow.AddChild(_marketButton);
@@ -308,15 +313,17 @@ namespace COP_v1.UI
             var sep1 = CreateSeparator();
 
             // ===== Блок риска (в одну строку) =====
-            double innerWidth = PanelStyles.PanelWidth - 16;
+            double innerWidth = PanelStyles.PanelWidth - PanelStyles.S(16);
+            double riskComboWidth = PanelStyles.S(84);
+            double riskComboHeight = PanelStyles.S(22);
             _riskLabel = new TextBlock { Text = Localization.Get("Risk") };
             PanelStyles.ApplyLabelStyle(_riskLabel);
 
             _riskModeCombo = new ComboBox
             {
-                Width = 84,
-                Height = 22,
-                Margin = new Thickness(4, 2, 2, 2)
+                Width = riskComboWidth,
+                Height = riskComboHeight,
+                Margin = PanelStyles.ST(4, 2, 2, 2)
             };
             _riskModeCombo.AddItem("Percent");
             _riskModeCombo.AddItem("USD");
@@ -327,8 +334,8 @@ namespace COP_v1.UI
             _riskTextBox = new TextBox
             {
                 Text = maxRiskPercent.ToString("F2"),
-                Width = innerWidth - 84 - 28 - 12,
-                Margin = new Thickness(2, 2, 2, 2)
+                Width = innerWidth - riskComboWidth - PanelStyles.S(28) - PanelStyles.S(12),
+                Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_riskTextBox);
             _riskTextBox.TextChanged += RiskTextBox_TextChanged;
@@ -339,7 +346,7 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 4, 0)
+                Margin = PanelStyles.ST(0, 0, 4, 0)
             };
 
             var riskInlineRow = new StackPanel
@@ -356,7 +363,7 @@ namespace COP_v1.UI
                 Text = "",
                 ForegroundColor = PanelStyles.ButtonError,
                 FontSize = PanelStyles.FontSizeSmall,
-                Margin = new Thickness(4, 0, 4, 2),
+                Margin = PanelStyles.ST(4, 0, 4, 2),
                 TextWrapping = TextWrapping.Wrap,
                 IsVisible = false
             };
@@ -369,7 +376,7 @@ namespace COP_v1.UI
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(2, 2, 2, 2)
+                Margin = PanelStyles.ST(2)
             };
             riskRow.AddChild(riskColumn);
 
@@ -382,7 +389,7 @@ namespace COP_v1.UI
                 Text = "",
                 IsReadOnly = true,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(4, 2, 4, 2)
+                Margin = PanelStyles.ST(4, 2, 4, 2)
             };
             PanelStyles.ApplyTextBoxStyle(_priceTextBox);
             _priceTextBox.TextChanged += PriceTextBox_TextChanged;
@@ -390,7 +397,7 @@ namespace COP_v1.UI
             var sep2 = CreateSeparator();
 
             // ===== Блок SL / TP =====
-            double colWidth = (PanelStyles.PanelWidth - 16) / 2;
+            double colWidth = (PanelStyles.PanelWidth - PanelStyles.S(16)) / 2;
 
             // -- SL --
             _slLabel = new TextBlock { Text = Localization.Get("StopLoss") };
@@ -400,8 +407,8 @@ namespace COP_v1.UI
             {
                 Text = "",
                 IsReadOnly = true,
-                Width = colWidth - 4,
-                Margin = new Thickness(2)
+                Width = colWidth - PanelStyles.S(4),
+                Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_slTextBox);
             _slTextBox.TextChanged += SlTextBox_TextChanged;
@@ -422,8 +429,8 @@ namespace COP_v1.UI
             {
                 Text = "",
                 IsReadOnly = true,
-                Width = colWidth - 4,
-                Margin = new Thickness(2)
+                Width = colWidth - PanelStyles.S(4),
+                Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_tpTextBox);
             _tpTextBox.TextChanged += TpTextBox_TextChanged;
@@ -440,7 +447,7 @@ namespace COP_v1.UI
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(2, 2, 2, 2)
+                Margin = PanelStyles.ST(2)
             };
             slTpRow.AddChild(slColumn);
             slTpRow.AddChild(tpColumn);
@@ -452,8 +459,8 @@ namespace COP_v1.UI
             {
                 Text = Localization.Get("PlaceOrder"),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Height = 36,
-                Margin = new Thickness(4, 4, 4, 6)
+                Height = PanelStyles.S(36),
+                Margin = PanelStyles.ST(4, 4, 4, 6)
             };
             PanelStyles.ApplySubmitButtonStyle(_submitButton, 0); // серая, неактивная
             _submitButton.Click += SubmitButton_Click;
@@ -474,12 +481,12 @@ namespace COP_v1.UI
 
             // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
             // Ряд уже по ширине, чем панель, и центрируется — слева и справа остаётся одинаковый зазор (cTrader игнорирует правый Margin у StackPanel).
-            const int miniPanelSideInset = 10;
-            const int miniPanelMarginV = 4;
+            double miniPanelSideInset = PanelStyles.S(10);
+            double miniPanelMarginV = PanelStyles.S(4);
             double rowInner = PanelStyles.PanelWidth - 2 * miniPanelSideInset;
             // 4 кнопки, MiniModeButtonMargin 1.5+1.5 по горизонтали → 4*W + 12 = rowInner
-            double miniBtnWidth = (rowInner - 12) / 4.0;
-            const int miniBtnHeight = 22;
+            double miniBtnWidth = (rowInner - PanelStyles.S(12)) / 4.0;
+            double miniBtnHeight = PanelStyles.S(22);
             _miniLimitButton = new Button
             {
                 Text = "LM",
@@ -548,19 +555,19 @@ namespace COP_v1.UI
             {
                 Width = rowInner,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, miniPanelMarginV, 0, miniPanelMarginV),
+                Margin = PanelStyles.ST(0, miniPanelMarginV, 0, miniPanelMarginV),
                 Child = _miniPanelStack
             };
 
             var miniFooterSep = new Border
             {
                 BackgroundColor = PanelStyles.SeparatorLineColor,
-                Height = 1,
+                Height = Math.Max(1, PanelStyles.S(1)),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(miniPanelSideInset, 0, miniPanelSideInset, 0)
+                Margin = PanelStyles.ST(miniPanelSideInset, 0, miniPanelSideInset, 0)
             };
 
-            int statusDotSize = 6;
+            double statusDotSize = PanelStyles.S(6);
             var statusDot = new Border
             {
                 Width = statusDotSize,
@@ -568,7 +575,7 @@ namespace COP_v1.UI
                 CornerRadius = statusDotSize / 2,
                 BackgroundColor = PanelStyles.StatusIndicatorGreen,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 4, 0)
+                Margin = PanelStyles.ST(0, 0, 4, 0)
             };
             var statusText = new TextBlock
             {
@@ -600,7 +607,7 @@ namespace COP_v1.UI
                 Width = rowInner,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 2, 0, miniPanelMarginV)
+                Margin = PanelStyles.ST(0, 2, 0, miniPanelMarginV)
             };
             footerGrid.Rows[0].SetHeightToAuto();
             footerGrid.Columns[0].SetWidthInStars(1);
@@ -642,7 +649,7 @@ namespace COP_v1.UI
                 FontSize = PanelStyles.FontSizeSmall,
                 FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 6, 0, 6)
+                Margin = PanelStyles.ST(4, 6, 0, 6)
             };
             var settingsHeaderRow = new StackPanel
             {
@@ -659,13 +666,13 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 4, 8, 4)
+                Margin = PanelStyles.ST(4, 4, 8, 4)
             };
             _tpCountCombo = new ComboBox
             {
-                Width = 60,
-                Height = 22,
-                Margin = new Thickness(4, 4, 4, 4)
+                Width = PanelStyles.S(60),
+                Height = PanelStyles.S(22),
+                Margin = PanelStyles.ST(4)
             };
             _tpCountCombo.AddItem(Localization.Get("TpCount1"));
             _tpCountCombo.AddItem(Localization.Get("TpCount2"));
@@ -676,7 +683,7 @@ namespace COP_v1.UI
             var tpCountRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(2, 2, 2, 2)
+                Margin = PanelStyles.ST(2)
             };
             tpCountRow.AddChild(tpCountLabel);
             tpCountRow.AddChild(_tpCountCombo);
@@ -688,13 +695,13 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 4, 8, 4)
+                Margin = PanelStyles.ST(4, 4, 8, 4)
             };
             _tpVolumeModeCombo = new ComboBox
             {
-                Width = 120,
-                Height = 22,
-                Margin = new Thickness(4, 4, 4, 4)
+                Width = PanelStyles.S(120),
+                Height = PanelStyles.S(22),
+                Margin = PanelStyles.ST(4)
             };
             _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualVolume"));
             _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualProfit"));
@@ -703,7 +710,7 @@ namespace COP_v1.UI
             var tpVolumeModeRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(2, 2, 2, 2)
+                Margin = PanelStyles.ST(2)
             };
             tpVolumeModeRow.AddChild(tpVolumeModeLabel);
             tpVolumeModeRow.AddChild(_tpVolumeModeCombo);
@@ -715,13 +722,13 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 4, 8, 4)
+                Margin = PanelStyles.ST(4, 4, 8, 4)
             };
             _transparencyCombo = new ComboBox
             {
-                Width = 80,
-                Height = 22,
-                Margin = new Thickness(4, 4, 4, 4)
+                Width = PanelStyles.S(80),
+                Height = PanelStyles.S(22),
+                Margin = PanelStyles.ST(4)
             };
             for (int p = 0; p <= 80; p += 10)
                 _transparencyCombo.AddItem(p + "%");
@@ -731,10 +738,41 @@ namespace COP_v1.UI
             var transparencyRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(2, 2, 2, 2)
+                Margin = PanelStyles.ST(2)
             };
             transparencyRow.AddChild(transparencyLabel);
             transparencyRow.AddChild(_transparencyCombo);
+
+            // --- Масштаб панели (70–150 %) ---
+            var scaleLabel = new TextBlock
+            {
+                Text = Localization.Get("PanelScaleLabel"),
+                ForegroundColor = PanelStyles.TextMuted,
+                FontSize = PanelStyles.FontSizeSmall,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = PanelStyles.ST(4, 4, 8, 4)
+            };
+            _scaleCombo = new ComboBox
+            {
+                Width = PanelStyles.S(80),
+                Height = PanelStyles.S(22),
+                Margin = PanelStyles.ST(4)
+            };
+            for (int p = 70; p <= 150; p += 10)
+                _scaleCombo.AddItem(p + "%");
+            _isUpdatingFromCode = true;
+            int scaleIdx = Math.Max(0, Math.Min(8, (PanelStyles.ScalePercent - 70) / 10));
+            _scaleCombo.SelectedIndex = scaleIdx;
+            _isUpdatingFromCode = false;
+            _scaleCombo.SelectedItemChanged += ScaleCombo_SelectedItemChanged;
+
+            var scaleRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = PanelStyles.ST(2)
+            };
+            scaleRow.AddChild(scaleLabel);
+            scaleRow.AddChild(_scaleCombo);
 
             var settingsContent = new StackPanel { Orientation = Orientation.Vertical };
             settingsContent.AddChild(settingsHeaderRow);
@@ -742,13 +780,14 @@ namespace COP_v1.UI
             settingsContent.AddChild(tpCountRow);
             settingsContent.AddChild(tpVolumeModeRow);
             settingsContent.AddChild(transparencyRow);
+            settingsContent.AddChild(scaleRow);
 
             // Без собственного фона: фон уже у _rootWrapper на всю высоту карточки; второй слой panelBg давал бы двойное затемнение при прозрачности.
             _settingsPanelBorder = new Border
             {
                 Child = settingsContent,
                 BackgroundColor = Color.FromArgb(0, PanelStyles.PanelBackground),
-                BorderThickness = new Thickness(0),
+                BorderThickness = PanelStyles.ST(0),
                 CornerRadius = 0,
                 Width = PanelStyles.PanelWidth,
                 IsVisible = false
@@ -770,10 +809,10 @@ namespace COP_v1.UI
                 Child = _rootContainer,
                 VerticalAlignment = MapVertical(vPos),
                 HorizontalAlignment = MapHorizontal(hPos),
-                Margin = new Thickness(8),
+                Margin = PanelStyles.ST(8),
                 BackgroundColor = panelBg,
                 BorderColor = PanelStyles.PanelBorderColor,
-                BorderThickness = new Thickness(1),
+                BorderThickness = PanelStyles.ST(1),
                 CornerRadius = PanelStyles.CornerRadiusPanel,
                 Width = PanelStyles.PanelWidth
             };
@@ -811,6 +850,52 @@ namespace COP_v1.UI
 
         /// <summary>Текущее значение риска из поля ввода (как строка).</summary>
         public string RiskText => _riskTextBox.Text;
+
+        /// <summary>Текущая прозрачность фона (0–80 %), как в настройках.</summary>
+        public int CurrentTransparencyPercent => _panelTransparencyPercent;
+
+        /// <summary>Видна ли секция настроек (+ Set / блок TP / прозрачность / масштаб).</summary>
+        public bool IsSettingsPanelVisible => _settingsPanelVisible;
+
+        /// <summary>Свёрнута ли основная панель (мини-режим).</summary>
+        public bool CollapsedState => _isCollapsed;
+
+        /// <summary>
+        /// Перед пересозданием панели задать свёрнутость для следующего экземпляра
+        /// (конструктор читает статическое <see cref="s_savedCollapsedState"/>).
+        /// </summary>
+        public static void SetSavedCollapsedStateForRestore(bool collapsed)
+        {
+            s_savedCollapsedState = collapsed;
+        }
+
+        /// <summary>Восстановить открыт/закрыт блок настроек без клика по кнопке Set.</summary>
+        public void RestoreSettingsPanelOpenState(bool open)
+        {
+            _settingsPanelVisible = open;
+            _settingsPanelBorder.IsVisible = open;
+            UpdateSettingsButtonLabel();
+        }
+
+        /// <summary>Восстановить индексы комбо числа тейков и режима объёма (без лишних событий перераспределения).</summary>
+        public void RestoreTpComboSettings(int tpCount, TpVolumeMode mode)
+        {
+            _isUpdatingFromCode = true;
+            int idx = tpCount <= 1 ? 0 : (tpCount == 2 ? 1 : 2);
+            _tpCountCombo.SelectedIndex = Math.Max(0, Math.Min(2, idx));
+            _tpVolumeModeCombo.SelectedIndex = mode == TpVolumeMode.EqualVolume ? 0 : 1;
+            _isUpdatingFromCode = false;
+        }
+
+        /// <summary>Установить чекбокс Fast Order и стиль мини-кнопки FST (без вызова <see cref="OnFastOrderToggled"/>).</summary>
+        public void SetFastOrderChecked(bool value)
+        {
+            _isUpdatingFromCode = true;
+            _fastOrderCheckBox.IsChecked = value;
+            PanelStyles.ApplyModeButtonStyle(_miniFoButton, value, PanelStyles.MiniModeButtonMargin);
+            _miniFoButton.FontSize = MiniButtonFontSize;
+            _isUpdatingFromCode = false;
+        }
 
         public void SetRiskMode(RiskMode mode)
         {
@@ -1129,6 +1214,15 @@ namespace COP_v1.UI
             OnTransparencyChanged?.Invoke(percent);
         }
 
+        private void ScaleCombo_SelectedItemChanged(ComboBoxSelectedItemChangedEventArgs args)
+        {
+            if (_isUpdatingFromCode) return;
+            int idx = _scaleCombo.SelectedIndex;
+            if (idx < 0 || idx > 8) return;
+            int percent = 70 + idx * 10;
+            OnScaleChanged?.Invoke(percent);
+        }
+
         /// <summary>Применить прозрачность фона карточки (один слой на <see cref="_rootWrapper"/>).</summary>
         private void ApplyPanelTransparency(int percent)
         {
@@ -1325,9 +1419,9 @@ namespace COP_v1.UI
             return new Border
             {
                 BackgroundColor = PanelStyles.SeparatorLineColor,
-                Height = 1,
+                Height = Math.Max(1, PanelStyles.S(1)),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(0, 2, 0, 2)
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
         }
 
@@ -1337,7 +1431,7 @@ namespace COP_v1.UI
             return new StackPanel
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Width = PanelStyles.PanelWidth - 80
+                Width = PanelStyles.PanelWidth - PanelStyles.S(80)
             };
         }
 
