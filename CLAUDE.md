@@ -54,6 +54,68 @@ VolumeInUnits = RiskAmount / (SL_distance_in_pips × PipValue)
 → Normalize to VolumeInUnitsStep, clamp to [VolumeInUnitsMin, VolumeInUnitsMax]
 ```
 
+## cTrader UI Layout — Critical Rules
+
+These rules were derived from debugging symmetric-margin failures in MainPanel.cs.
+Violating them produces invisible-looking code that renders asymmetrically in cTrader.
+
+### Rule 1 — Grid with all-Star columns MUST have explicit Width
+
+A `Grid` whose **every** column uses `SetWidthInStars()` does **not** auto-expand through
+a `StackPanel` parent in cTrader. It collapses to minimum content width and left-aligns,
+leaving empty space on the right.
+
+```csharp
+// WRONG — looks correct but renders narrow + left-aligned:
+var myGrid = new Grid(1, 2) { HorizontalAlignment = HorizontalAlignment.Stretch };
+myGrid.Columns[0].SetWidthInStars(1);
+myGrid.Columns[1].SetWidthInStars(1);
+
+// CORRECT — explicit width guarantees symmetric Star column split:
+var myGrid = new Grid(1, 2) { Width = PanelStyles.ContentWidth };
+myGrid.Columns[0].SetWidthInStars(1);
+myGrid.Columns[1].SetWidthInStars(1);
+```
+
+A Grid with **at least one Auto column** (e.g. `checkboxRow`: Auto | Star) works without
+explicit Width because the Auto column provides a layout anchor.
+
+### Rule 2 — HorizontalAlignment.Stretch is unreliable for Grid inside StackPanel
+
+`HorizontalAlignment = HorizontalAlignment.Stretch` on a `Grid` child of a `StackPanel`
+does **not** reliably provide the full parent width in cTrader (unlike WPF). Always prefer
+`Width = PanelStyles.ContentWidth` for row-level Grids (mode buttons, SL/TP, settings rows).
+
+### Rule 3 — Do NOT add Padding to _rootWrapper
+
+`PanelClientWidth = PanelWidth - 2 * BorderThickness`. Adding `Padding` to `_rootWrapper`
+shrinks the actual content area further, but inner containers still use `Width = PanelClientWidth`
+— they overflow the real content area by `2 * Padding` and shift all content to one side.
+
+Content inset is implemented via `_contentStack.Margin = ContentStackHorizontalMargin` only.
+Never use `Padding` on the root Border for spacing purposes.
+
+### Rule 4 — The width propagation chain (reference)
+
+```
+_rootWrapper (Border, Width=PanelWidth, NO Padding)
+  _rootContainer (StackPanel, Width=PanelClientWidth)
+    _mainPanelRoot (StackPanel, Width=PanelClientWidth)
+      _mainStack (StackPanel, Width=PanelClientWidth)  ← must be explicit
+        _contentStack (StackPanel, Margin=ContentStackHorizontalMargin)
+          rows with Width=ContentWidth  ← every Star-only Grid needs this
+```
+
+Any StackPanel in this chain **without** explicit Width may fail to pass a constrained
+width to its children, breaking Star columns and HAlignment.Stretch.
+
+### Rule 5 — settingsRowsStack rows follow the same rule
+
+Every `Grid` row inside `settingsRowsStack` (Settings panel) must also have
+`Width = PanelStyles.ContentWidth`, for the same reason as the main panel rows.
+
+---
+
 ## Active Development
 
 The **multi-TP feature** (2–3 takeprofit levels) is planned next (see `TODO.md`). The implementation roadmap is fully specified there including volume distribution logic (equal volume vs. equal profit), panel layout changes, chart line handling per order mode, and integration steps.

@@ -342,14 +342,12 @@ namespace COP_v1.UI
             checkboxRow.AddChild(spreadStack, 0, 1);
 
             // ===== Кнопки режимов =====
-            // Сетка: ContentWidth; половинки с зазором ModeButtonsGap (как у ApplyModeButtonStyle Margin 2+2 по краям кнопок)
-            double halfWidth = (PanelStyles.ContentWidth - PanelStyles.ModeButtonsGap) / 2;
-
+            // Grid(1,2) со Star-колонками — гарантирует симметричный отступ без фиксированных Width.
             _limitButton = new Button
             {
                 Text = Localization.Get("Limit"),
-                Width = halfWidth,
-                Height = PanelStyles.ModeButtonHeight
+                Height = PanelStyles.ModeButtonHeight,
+                HorizontalAlignment = HorizontalAlignment.Stretch
             };
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             _limitButton.Click += LimitButton_Click;
@@ -357,28 +355,22 @@ namespace COP_v1.UI
             _marketButton = new Button
             {
                 Text = Localization.Get("Market"),
-                Width = halfWidth,
-                Height = PanelStyles.ModeButtonHeight
+                Height = PanelStyles.ModeButtonHeight,
+                HorizontalAlignment = HorizontalAlignment.Stretch
             };
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
             _marketButton.Click += MarketButton_Click;
 
-            var modeRow = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(0, PanelStyles.S(4), 0, 0)
-            };
-            modeRow.AddChild(_limitButton);
-            modeRow.AddChild(_marketButton);
-
-            // Явная ширина ряда для стабильного выравнивания в cTrader (см. комментарий у мини-ряда).
-            var modeRowWrap = new Border
+            var modeGrid = new Grid(1, 2)
             {
                 Width = PanelStyles.ContentWidth,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Child = modeRow
+                Margin = PanelStyles.ST(0, 4, 0, 0)
             };
+            modeGrid.Rows[0].SetHeightToAuto();
+            modeGrid.Columns[0].SetWidthInStars(1);
+            modeGrid.Columns[1].SetWidthInStars(1);
+            modeGrid.AddChild(_limitButton, 0, 0);
+            modeGrid.AddChild(_marketButton, 0, 1);
 
             // ===== Блок риска (в одну строку) =====
             double riskComboHeight = PanelStyles.InputHeightSm;
@@ -464,7 +456,7 @@ namespace COP_v1.UI
             _priceTextBox.TextChanged += PriceTextBox_TextChanged;
 
             // ===== Блок SL / TP =====
-            double colWidth = PanelStyles.ContentWidth / 2;
+            // Grid(1,2) со Star-колонками — ровно половина ширины каждой колонке без явных Width.
 
             // -- SL --
             _slLabel = new TextBlock { Text = Localization.Get("StopLoss") };
@@ -475,7 +467,7 @@ namespace COP_v1.UI
             {
                 Text = "",
                 IsReadOnly = true,
-                Width = colWidth - PanelStyles.S(4),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 Height = PanelStyles.InputHeightMd,
                 Margin = PanelStyles.ST(2)
             };
@@ -485,7 +477,7 @@ namespace COP_v1.UI
             _slInfoText = new TextBlock { Text = "0.00$ (0.00%)" };
             PanelStyles.ApplyValueStyle(_slInfoText);
 
-            var slColumn = new StackPanel { Orientation = Orientation.Vertical, Width = colWidth };
+            var slColumn = new StackPanel { Orientation = Orientation.Vertical };
             slColumn.AddChild(_slLabel);
             slColumn.AddChild(_slTextBox);
             slColumn.AddChild(_slInfoText);
@@ -499,7 +491,7 @@ namespace COP_v1.UI
             {
                 Text = "",
                 IsReadOnly = true,
-                Width = colWidth - PanelStyles.S(4),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 Height = PanelStyles.InputHeightMd,
                 Margin = PanelStyles.ST(2)
             };
@@ -509,26 +501,21 @@ namespace COP_v1.UI
             _tpInfoText = new TextBlock { Text = "0.00$ (0.00%)" };
             PanelStyles.ApplyValueStyle(_tpInfoText);
 
-            var tpColumn = new StackPanel { Orientation = Orientation.Vertical, Width = colWidth };
+            var tpColumn = new StackPanel { Orientation = Orientation.Vertical };
             tpColumn.AddChild(_tpLabel);
             tpColumn.AddChild(_tpTextBox);
             tpColumn.AddChild(_tpInfoText);
 
-            var slTpRow = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(0, 2, 0, 2)
-            };
-            slTpRow.AddChild(slColumn);
-            slTpRow.AddChild(tpColumn);
-
-            var slTpRowWrap = new Border
+            var slTpGrid = new Grid(1, 2)
             {
                 Width = PanelStyles.ContentWidth,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Child = slTpRow
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
+            slTpGrid.Rows[0].SetHeightToAuto();
+            slTpGrid.Columns[0].SetWidthInStars(1);
+            slTpGrid.Columns[1].SetWidthInStars(1);
+            slTpGrid.AddChild(slColumn, 0, 0);
+            slTpGrid.AddChild(tpColumn, 0, 1);
 
             // ===== Кнопка подтверждения =====
             _submitButton = new Button
@@ -536,9 +523,9 @@ namespace COP_v1.UI
                 Text = Localization.Get("PlaceOrder"),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Height = PanelStyles.SubmitButtonHeight,
-                Margin = PanelStyles.ST(4, 4, 4, 6)
+                Margin = PanelStyles.ST(2, 4, 2, 6)
             };
-            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(4, 4, 4, 6)); // серая, неактивная
+            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(2, 4, 2, 6)); // серая, неактивная
             _submitButton.Click += SubmitButton_Click;
 
             // ===== Собираем контент (всё кроме заголовка) =====
@@ -548,11 +535,11 @@ namespace COP_v1.UI
                 Margin = PanelStyles.ContentStackHorizontalMargin
             };
             _contentStack.AddChild(checkboxRow);
-            _contentStack.AddChild(modeRowWrap);
+            _contentStack.AddChild(modeGrid);
             _contentStack.AddChild(riskColumn);
             _contentStack.AddChild(_priceLabel);
             _contentStack.AddChild(_priceTextBox);
-            _contentStack.AddChild(slTpRowWrap);
+            _contentStack.AddChild(slTpGrid);
             _contentStack.AddChild(_submitButton);
 
             // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
@@ -702,7 +689,8 @@ namespace COP_v1.UI
             // ===== Собираем всё в основной стек =====
             _mainStack = new StackPanel
             {
-                Orientation = Orientation.Vertical
+                Orientation = Orientation.Vertical,
+                Width = PanelStyles.PanelClientWidth
             };
             _mainStack.AddChild(headerBarBorder);
             _mainStack.AddChild(_collapsedChromeStack);
@@ -759,7 +747,7 @@ namespace COP_v1.UI
             _tpCountCombo.SelectedIndex = 0;
             var tpCountRow = new Grid(1, 2)
             {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = PanelStyles.ContentWidth,
                 Margin = PanelStyles.ST(0, 2, 0, 2)
             };
             tpCountRow.Rows[0].SetHeightToAuto();
@@ -791,7 +779,7 @@ namespace COP_v1.UI
             _tpVolumeModeCombo.SelectedItemChanged += _ => OnTpAllocationSettingsChanged?.Invoke();
             var tpVolumeModeRow = new Grid(1, 2)
             {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = PanelStyles.ContentWidth,
                 Margin = PanelStyles.ST(0, 2, 0, 2)
             };
             tpVolumeModeRow.Rows[0].SetHeightToAuto();
@@ -824,7 +812,7 @@ namespace COP_v1.UI
 
             var transparencyRow = new Grid(1, 2)
             {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = PanelStyles.ContentWidth,
                 Margin = PanelStyles.ST(0, 2, 0, 2)
             };
             transparencyRow.Rows[0].SetHeightToAuto();
@@ -860,7 +848,7 @@ namespace COP_v1.UI
 
             var scaleRow = new Grid(1, 2)
             {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = PanelStyles.ContentWidth,
                 Margin = PanelStyles.ST(0, 2, 0, 2)
             };
             scaleRow.Rows[0].SetHeightToAuto();
@@ -915,8 +903,6 @@ namespace COP_v1.UI
                 BackgroundColor = panelBg,
                 BorderColor = PanelStyles.PanelBorderColor,
                 BorderThickness = PanelStyles.ST(1),
-                // Совпадает с толщиной рамки: контент не рисуется поверх линии обводки (в т.ч. верхний правый угол).
-                Padding = PanelStyles.ST(1),
                 CornerRadius = PanelStyles.CornerRadiusPanel,
                 Width = PanelStyles.PanelWidth
             };
@@ -1121,7 +1107,7 @@ namespace COP_v1.UI
         {
             if (_fastOrderOn)
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(4, 4, 4, 6));
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(2, 4, 2, 6));
                 _submitButton.Text = Localization.Get("PlaceOrder");
                 ApplyMiniSubmitButtonStyle(0);
                 _miniSubmitButton.IsEnabled = false;
@@ -1232,7 +1218,7 @@ namespace COP_v1.UI
             IsMarketActive = false;
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
-            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(4, 4, 4, 6));
+            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(2, 4, 2, 6));
             _submitButton.Text = Localization.Get("PlaceOrder");
             PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
             PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
