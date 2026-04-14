@@ -255,7 +255,7 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextColor,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(0, 0, 2, 0)
+                Margin = PanelStyles.ST(0, 0, 6, 0)
             };
 
             _spreadValueText = new TextBlock
@@ -263,18 +263,37 @@ namespace COP_v1.UI
                 Text = "",
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = PanelStyles.ST(0, 0, 2, 0)
             };
 
-            var checkboxRow = new StackPanel
+            var leftStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            leftStack.AddChild(_fastOrderCheckBox);
+            leftStack.AddChild(fastOrderLabel);
+
+            var spreadStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            spreadStack.AddChild(spreadLabel);
+            spreadStack.AddChild(_spreadValueText);
+
+            var checkboxRow = new Grid(1, 2)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = PanelStyles.ST(2)
             };
-            checkboxRow.AddChild(_fastOrderCheckBox);
-            checkboxRow.AddChild(fastOrderLabel);
-            checkboxRow.AddChild(spreadLabel);
-            checkboxRow.AddChild(_spreadValueText);
+            checkboxRow.Rows[0].SetHeightToAuto();
+            checkboxRow.Columns[0].SetWidthToAuto();
+            checkboxRow.Columns[1].SetWidthInStars(1);
+            checkboxRow.AddChild(leftStack, 0, 0);
+            checkboxRow.AddChild(spreadStack, 0, 1);
 
             // ===== Кнопки режимов =====
             // Учитываем Margin(2) с каждой стороны у кнопок (ApplyModeButtonStyle) и поля ряда
