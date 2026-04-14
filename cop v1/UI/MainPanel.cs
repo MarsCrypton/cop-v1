@@ -380,8 +380,6 @@ namespace COP_v1.UI
                 Child = modeRow
             };
 
-            var sep1 = CreateSeparator(0, 2);
-
             // ===== Блок риска (в одну строку) =====
             double riskComboHeight = PanelStyles.InputHeightSm;
             _riskLabel = new TextBlock { Text = Localization.Get("Risk") };
@@ -448,8 +446,6 @@ namespace COP_v1.UI
             riskColumn.AddChild(_riskLabel);
             riskColumn.AddChild(riskInlineGrid);
             riskColumn.AddChild(_riskErrorText);
-
-            var sep2 = CreateSeparator(2, 2);
 
             // ===== Блок цены входа =====
             _priceLabel = new TextBlock { Text = Localization.Get("LimitOrder") };
@@ -534,8 +530,6 @@ namespace COP_v1.UI
                 Child = slTpRow
             };
 
-            var sep3 = CreateSeparator(0, 2);
-
             // ===== Кнопка подтверждения =====
             _submitButton = new Button
             {
@@ -555,14 +549,10 @@ namespace COP_v1.UI
             };
             _contentStack.AddChild(checkboxRow);
             _contentStack.AddChild(modeRowWrap);
-            _contentStack.AddChild(sep1);
             _contentStack.AddChild(riskColumn);
-            _contentStack.AddChild(sep2);
             _contentStack.AddChild(_priceLabel);
             _contentStack.AddChild(_priceTextBox);
-            _contentStack.AddChild(sep3);
             _contentStack.AddChild(slTpRowWrap);
-            _contentStack.AddChild(CreateSeparator(0, 2));
             _contentStack.AddChild(_submitButton);
 
             // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
