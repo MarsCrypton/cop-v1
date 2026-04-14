@@ -153,3 +153,29 @@ The current implementation uses per-row margins instead. The three fixes above a
 | `cop v1/UI/MainPanel.cs` | ~400 | `colWidth`: `S(16)` → `S(4)` |
 | `cop v1/UI/MainPanel.cs` | ~392 | `_priceTextBox` margin: `ST(4,2,4,2)` → `ST(2,2,2,2)` |
 | `cop v1/UI/MainPanel.cs` | ~316 | `innerWidth`: `S(16)` → `S(4)` |
+
+---
+
+## Premium Standard (MAR-99) — реализовано в коде
+
+Единая сетка вместо точечных правок:
+
+| Механизм | Где |
+|----------|-----|
+| `PanelStyles.ContentInsetX`, `ContentWidth`, `ContentStackHorizontalMargin` | [`cop v1/UI/PanelStyles.cs`](../cop%20v1/UI/PanelStyles.cs) |
+| `_contentStack.Margin` = горизонтальный inset; ряды без лишнего горизонтального margin | [`cop v1/UI/MainPanel.cs`](../cop%20v1/UI/MainPanel.cs) |
+| `colWidth = ContentWidth / 2`; обёртка `slTpRowWrap` (`Border` фикс. ширины) | то же |
+| Limit/Market: `halfWidth = (ContentWidth - ModeButtonsGap) / 2`; обёртка `modeRowWrap` | то же |
+| Настройки: `Grid` 2 колонки + единая `SettingsComboWidth`; `settingsRowsStack` с `SettingsStackHorizontalMargin` | то же |
+| Мини-ряд и футер: `rowInner = ContentWidth`; разделитель с тем же горизонтальным margin | то же |
+
+### Чеклист приёмки в cTrader (ручная проверка)
+
+Выполнить на масштабах панели **80 %**, **100 %**, **150 %** (развёрнутая и мини-панель):
+
+1. Левый и правый край контента (поля, кнопки режимов, SL/TP, Place order) визуально на одной вертикали.
+2. Блок Settings: подписи слева, комбо одинаковой ширины, выравнивание по правому краю комбо.
+3. Ряд LM/MK/OK/FST совпадает по ширине с основным контентом.
+4. Нет «провала» справа у SL/TP и риска.
+
+Проверка сборки: `dotnet build "cop v1/cop v1.csproj"`.

@@ -13,7 +13,7 @@ namespace COP_v1.UI
 
     /// <summary>
     /// Главная UI-панель бота COP v1.
-    /// Содержит все контролы: чекбоксы, кнопки режимов, поля ввода, кнопку подтверждения.
+    /// Содержит все контролы: Fast Order, кнопки режимов, поля ввода, кнопку подтверждения.
     /// Поддерживает сворачивание/разворачивание.
     /// </summary>
     public class MainPanel
@@ -51,8 +51,10 @@ namespace COP_v1.UI
         // === Контент (скрывается при сворачивании) ===
         private readonly StackPanel _contentStack;
 
-        // === Чекбоксы ===
-        private readonly CheckBox _fastOrderCheckBox;
+        // === Fast Order (сегмент OFF/ON) и спред ===
+        private readonly Button _fastOrderOffButton;
+        private readonly Button _fastOrderOnButton;
+        private bool _fastOrderOn;
         private readonly TextBlock _spreadValueText;
 
         // === Кнопки режимов ===
@@ -143,7 +145,7 @@ namespace COP_v1.UI
         /// <summary>Вызывается при изменении значения TP. Аргумент: новый текст.</summary>
         public event Action<string> OnTpChanged;
 
-        /// <summary>Вызывается при переключении чекбокса Fast Order. Аргумент: новое состояние.</summary>
+        /// <summary>Вызывается при переключении Fast Order (OFF/ON или FST). Аргумент: новое состояние.</summary>
         public event Action<bool> OnFastOrderToggled;
 
         /// <summary>Смена числа тейков или режима равный объём / равный профит в настройках.</summary>
@@ -220,9 +222,8 @@ namespace COP_v1.UI
 
             var headerGrid = new Grid(1, 2)
             {
-                BackgroundColor = PanelStyles.HeaderBarColor,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Width = PanelStyles.PanelWidth
+                Width = PanelStyles.PanelClientWidth
             };
             headerGrid.Rows[0].SetHeightToAuto();
             // Зона заголовка (центрирование между левым краем и Set) : зона кнопок — ~1 : 2
@@ -231,14 +232,59 @@ namespace COP_v1.UI
             headerGrid.AddChild(titleCell, 0, 0);
             headerGrid.AddChild(headerButtonsGrid, 0, 1);
 
-            // ===== Чекбоксы =====
-            _fastOrderCheckBox = new CheckBox
+            // Заливка шапки на скруглении карточки: только верхние углы (внешний Border уже CornerRadiusPanel).
+            double panelHdrR = PanelStyles.CornerRadiusPanelInner;
+            var headerBarBorder = new Border
             {
-                IsChecked = fastOrderMode,
-                ForegroundColor = PanelStyles.TextColor,
-                Margin = PanelStyles.ST(4, 4, 8, 4)
+                BackgroundColor = PanelStyles.HeaderBarColor,
+                CornerRadius = new CornerRadius(panelHdrR, panelHdrR, 0, 0),
+                Child = headerGrid,
+                Width = PanelStyles.PanelClientWidth,
+                HorizontalAlignment = HorizontalAlignment.Stretch
             };
-            _fastOrderCheckBox.Click += FastOrderCheckBox_Click;
+
+            // ===== Fast Order: сегмент OFF / ON =====
+            _fastOrderOn = fastOrderMode;
+
+            _fastOrderOffButton = new Button
+            {
+                Text = Localization.Get("FastOrderOff"),
+                Width = PanelStyles.FastToggleSegmentWidth,
+                Height = PanelStyles.FastToggleHeight,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            _fastOrderOffButton.Click += FastOrderOffButton_Click;
+
+            _fastOrderOnButton = new Button
+            {
+                Text = Localization.Get("FastOrderOn"),
+                Width = PanelStyles.FastToggleSegmentWidth,
+                Height = PanelStyles.FastToggleHeight,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            _fastOrderOnButton.Click += FastOrderOnButton_Click;
+
+            ApplyFastOrderToggleVisual();
+
+            var fastOrderToggleStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            fastOrderToggleStack.AddChild(_fastOrderOffButton);
+            fastOrderToggleStack.AddChild(_fastOrderOnButton);
+
+            var fastOrderToggleBorder = new Border
+            {
+                BackgroundColor = PanelStyles.HeaderBarColor,
+                BorderColor = PanelStyles.FastOrderToggleBorderColor,
+                BorderThickness = PanelStyles.ST(1),
+                CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
+                Padding = PanelStyles.ST(1),
+                Margin = PanelStyles.ST(0, 2, 8, 2),
+                Child = fastOrderToggleStack,
+                VerticalAlignment = VerticalAlignment.Center
+            };
 
             var fastOrderLabel = new TextBlock
             {
@@ -272,7 +318,7 @@ namespace COP_v1.UI
                 Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            leftStack.AddChild(_fastOrderCheckBox);
+            leftStack.AddChild(fastOrderToggleBorder);
             leftStack.AddChild(fastOrderLabel);
 
             var spreadStack = new StackPanel
@@ -287,7 +333,7 @@ namespace COP_v1.UI
             var checkboxRow = new Grid(1, 2)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(2)
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
             checkboxRow.Rows[0].SetHeightToAuto();
             checkboxRow.Columns[0].SetWidthToAuto();
@@ -296,10 +342,8 @@ namespace COP_v1.UI
             checkboxRow.AddChild(spreadStack, 0, 1);
 
             // ===== Кнопки режимов =====
-            // Учитываем Margin(2) с каждой стороны у кнопок (ApplyModeButtonStyle) и поля ряда
-            double modeRowSideMargin = PanelStyles.S(2);
-            double modeInner = PanelStyles.PanelWidth - 2 * modeRowSideMargin;
-            double halfWidth = (modeInner - PanelStyles.S(8)) / 2;
+            // Сетка: ContentWidth; половинки с зазором ModeButtonsGap (как у ApplyModeButtonStyle Margin 2+2 по краям кнопок)
+            double halfWidth = (PanelStyles.ContentWidth - PanelStyles.ModeButtonsGap) / 2;
 
             _limitButton = new Button
             {
@@ -323,25 +367,31 @@ namespace COP_v1.UI
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(modeRowSideMargin, PanelStyles.S(4), modeRowSideMargin, PanelStyles.S(4))
+                Margin = PanelStyles.ST(0, PanelStyles.S(4), 0, 0)
             };
             modeRow.AddChild(_limitButton);
             modeRow.AddChild(_marketButton);
 
-            // ===== Разделитель =====
-            var sep1 = CreateSeparator();
+            // Явная ширина ряда для стабильного выравнивания в cTrader (см. комментарий у мини-ряда).
+            var modeRowWrap = new Border
+            {
+                Width = PanelStyles.ContentWidth,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Child = modeRow
+            };
+
+            var sep1 = CreateSeparator(0, 2);
 
             // ===== Блок риска (в одну строку) =====
-            double riskComboWidth = PanelStyles.S(84);
-            double riskComboHeight = PanelStyles.S(26);
+            double riskComboHeight = PanelStyles.InputHeightSm;
             _riskLabel = new TextBlock { Text = Localization.Get("Risk") };
             PanelStyles.ApplyLabelStyle(_riskLabel);
 
             _riskModeCombo = new ComboBox
             {
-                Width = riskComboWidth,
+                Width = PanelStyles.RiskComboWidth,
                 Height = riskComboHeight,
-                Margin = PanelStyles.ST(4, 2, 2, 2)
+                Margin = PanelStyles.ST(2)
             };
             _riskModeCombo.AddItem("Percent");
             _riskModeCombo.AddItem("USD");
@@ -393,11 +443,13 @@ namespace COP_v1.UI
             {
                 Orientation = Orientation.Vertical,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(2)
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
             riskColumn.AddChild(_riskLabel);
             riskColumn.AddChild(riskInlineGrid);
             riskColumn.AddChild(_riskErrorText);
+
+            var sep2 = CreateSeparator(2, 2);
 
             // ===== Блок цены входа =====
             _priceLabel = new TextBlock { Text = Localization.Get("LimitOrder") };
@@ -408,16 +460,15 @@ namespace COP_v1.UI
                 Text = "",
                 IsReadOnly = true,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Height = PanelStyles.S(32),
+                Height = PanelStyles.InputHeightLg,
                 Margin = PanelStyles.ST(2, 2, 2, 2)
             };
             PanelStyles.ApplyTextBoxStyle(_priceTextBox);
+            _priceTextBox.Margin = PanelStyles.ST(2, 2, 2, 2);
             _priceTextBox.TextChanged += PriceTextBox_TextChanged;
 
-            var sep2 = CreateSeparator();
-
             // ===== Блок SL / TP =====
-            double colWidth = (PanelStyles.PanelWidth - PanelStyles.S(4)) / 2;
+            double colWidth = PanelStyles.ContentWidth / 2;
 
             // -- SL --
             _slLabel = new TextBlock { Text = Localization.Get("StopLoss") };
@@ -429,7 +480,7 @@ namespace COP_v1.UI
                 Text = "",
                 IsReadOnly = true,
                 Width = colWidth - PanelStyles.S(4),
-                Height = PanelStyles.S(26),
+                Height = PanelStyles.InputHeightMd,
                 Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_slTextBox);
@@ -453,7 +504,7 @@ namespace COP_v1.UI
                 Text = "",
                 IsReadOnly = true,
                 Width = colWidth - PanelStyles.S(4),
-                Height = PanelStyles.S(26),
+                Height = PanelStyles.InputHeightMd,
                 Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_tpTextBox);
@@ -471,43 +522,53 @@ namespace COP_v1.UI
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(2)
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
             slTpRow.AddChild(slColumn);
             slTpRow.AddChild(tpColumn);
 
-            var sep3 = CreateSeparator();
+            var slTpRowWrap = new Border
+            {
+                Width = PanelStyles.ContentWidth,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Child = slTpRow
+            };
+
+            var sep3 = CreateSeparator(0, 2);
 
             // ===== Кнопка подтверждения =====
             _submitButton = new Button
             {
                 Text = Localization.Get("PlaceOrder"),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Height = PanelStyles.S(36),
+                Height = PanelStyles.SubmitButtonHeight,
                 Margin = PanelStyles.ST(4, 4, 4, 6)
             };
-            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0); // серая, неактивная
+            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(4, 4, 4, 6)); // серая, неактивная
             _submitButton.Click += SubmitButton_Click;
 
             // ===== Собираем контент (всё кроме заголовка) =====
-            _contentStack = new StackPanel { Orientation = Orientation.Vertical };
+            _contentStack = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = PanelStyles.ContentStackHorizontalMargin
+            };
             _contentStack.AddChild(checkboxRow);
-            _contentStack.AddChild(modeRow);
+            _contentStack.AddChild(modeRowWrap);
             _contentStack.AddChild(sep1);
             _contentStack.AddChild(riskColumn);
             _contentStack.AddChild(sep2);
             _contentStack.AddChild(_priceLabel);
             _contentStack.AddChild(_priceTextBox);
             _contentStack.AddChild(sep3);
-            _contentStack.AddChild(slTpRow);
-            _contentStack.AddChild(CreateSeparator());
+            _contentStack.AddChild(slTpRowWrap);
+            _contentStack.AddChild(CreateSeparator(0, 2));
             _contentStack.AddChild(_submitButton);
 
             // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
-            // Ряд уже по ширине, чем панель, и центрируется — слева и справа остаётся одинаковый зазор (cTrader игнорирует правый Margin у StackPanel).
-            double miniPanelSideInset = PanelStyles.S(10);
+            // Та же рабочая ширина, что у основного контента (ContentWidth); Border фиксирует ширину для cTrader.
             double miniPanelMarginV = PanelStyles.S(4);
-            double rowInner = PanelStyles.PanelWidth - 2 * miniPanelSideInset;
+            double rowInner = PanelStyles.ContentWidth;
             // 4 кнопки, MiniModeButtonMargin 1.5+1.5 по горизонтали → 4*W + 12 = rowInner
             double miniBtnWidth = (rowInner - PanelStyles.S(12)) / 4.0;
             double miniBtnHeight = PanelStyles.S(22);
@@ -556,7 +617,7 @@ namespace COP_v1.UI
                 Margin = PanelStyles.MiniModeButtonMargin,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, _fastOrderCheckBox.IsChecked == true, PanelStyles.MiniModeButtonMargin);
+            PanelStyles.ApplyMiniFastOrderButtonStyle(_miniFoButton, _fastOrderOn, PanelStyles.MiniModeButtonMargin);
             _miniFoButton.Click += (args) => SetFastOrder(!IsFastOrder);
 
             _miniLimitButton.FontSize = MiniButtonFontSize;
@@ -588,7 +649,7 @@ namespace COP_v1.UI
                 BackgroundColor = PanelStyles.SeparatorLineColor,
                 Height = Math.Max(1, PanelStyles.S(1)),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(miniPanelSideInset, 0, miniPanelSideInset, 0)
+                Margin = PanelStyles.ContentStackHorizontalMargin
             };
 
             double statusDotSize = PanelStyles.S(6);
@@ -653,7 +714,7 @@ namespace COP_v1.UI
             {
                 Orientation = Orientation.Vertical
             };
-            _mainStack.AddChild(headerGrid);
+            _mainStack.AddChild(headerBarBorder);
             _mainStack.AddChild(_collapsedChromeStack);
             _mainStack.AddChild(_contentStack);
 
@@ -661,7 +722,7 @@ namespace COP_v1.UI
             _mainPanelRoot = new StackPanel
             {
                 Orientation = Orientation.Vertical,
-                Width = PanelStyles.PanelWidth
+                Width = PanelStyles.PanelClientWidth
             };
             _mainPanelRoot.AddChild(_mainStack);
 
@@ -673,7 +734,7 @@ namespace COP_v1.UI
                 FontSize = PanelStyles.FontSizeSmall,
                 FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(4, 6, 0, 6)
+                Margin = PanelStyles.ST(4, 6, 4, 6)
             };
             var settingsHeaderRow = new StackPanel
             {
@@ -690,13 +751,15 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(4, 4, 8, 4)
+                Margin = PanelStyles.ST(0, 0, 8, 0),
+                TextWrapping = TextWrapping.Wrap
             };
             _tpCountCombo = new ComboBox
             {
-                Width = PanelStyles.S(60),
+                Width = PanelStyles.SettingsComboWidth,
                 Height = PanelStyles.S(22),
-                Margin = PanelStyles.ST(4)
+                Margin = PanelStyles.ST(2),
+                HorizontalAlignment = HorizontalAlignment.Right
             };
             _tpCountCombo.AddItem(Localization.Get("TpCount1"));
             _tpCountCombo.AddItem(Localization.Get("TpCount2"));
@@ -704,13 +767,16 @@ namespace COP_v1.UI
             _tpCountCombo.SelectedItemChanged += _ => OnTpAllocationSettingsChanged?.Invoke();
             // По умолчанию 1 тейк (индекс 0).
             _tpCountCombo.SelectedIndex = 0;
-            var tpCountRow = new StackPanel
+            var tpCountRow = new Grid(1, 2)
             {
-                Orientation = Orientation.Horizontal,
-                Margin = PanelStyles.ST(2)
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
-            tpCountRow.AddChild(tpCountLabel);
-            tpCountRow.AddChild(_tpCountCombo);
+            tpCountRow.Rows[0].SetHeightToAuto();
+            tpCountRow.Columns[0].SetWidthInStars(1);
+            tpCountRow.Columns[1].SetWidthToAuto();
+            tpCountRow.AddChild(tpCountLabel, 0, 0);
+            tpCountRow.AddChild(_tpCountCombo, 0, 1);
 
             // --- Режим объёма (равный объём / равный профит) ---
             var tpVolumeModeLabel = new TextBlock
@@ -719,25 +785,30 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(4, 4, 8, 4)
+                Margin = PanelStyles.ST(0, 0, 8, 0),
+                TextWrapping = TextWrapping.Wrap
             };
             _tpVolumeModeCombo = new ComboBox
             {
-                Width = PanelStyles.S(120),
+                Width = PanelStyles.SettingsComboWidth,
                 Height = PanelStyles.S(22),
-                Margin = PanelStyles.ST(4)
+                Margin = PanelStyles.ST(2),
+                HorizontalAlignment = HorizontalAlignment.Right
             };
             _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualVolume"));
             _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualProfit"));
             _tpVolumeModeCombo.SelectedIndex = 0; // равный объём по умолчанию
             _tpVolumeModeCombo.SelectedItemChanged += _ => OnTpAllocationSettingsChanged?.Invoke();
-            var tpVolumeModeRow = new StackPanel
+            var tpVolumeModeRow = new Grid(1, 2)
             {
-                Orientation = Orientation.Horizontal,
-                Margin = PanelStyles.ST(2)
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
-            tpVolumeModeRow.AddChild(tpVolumeModeLabel);
-            tpVolumeModeRow.AddChild(_tpVolumeModeCombo);
+            tpVolumeModeRow.Rows[0].SetHeightToAuto();
+            tpVolumeModeRow.Columns[0].SetWidthInStars(1);
+            tpVolumeModeRow.Columns[1].SetWidthToAuto();
+            tpVolumeModeRow.AddChild(tpVolumeModeLabel, 0, 0);
+            tpVolumeModeRow.AddChild(_tpVolumeModeCombo, 0, 1);
 
             // --- Прозрачность фона панели (0–80 %) ---
             var transparencyLabel = new TextBlock
@@ -746,26 +817,31 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(4, 4, 8, 4)
+                Margin = PanelStyles.ST(0, 0, 8, 0),
+                TextWrapping = TextWrapping.Wrap
             };
             _transparencyCombo = new ComboBox
             {
-                Width = PanelStyles.S(80),
+                Width = PanelStyles.SettingsComboWidth,
                 Height = PanelStyles.S(22),
-                Margin = PanelStyles.ST(4)
+                Margin = PanelStyles.ST(2),
+                HorizontalAlignment = HorizontalAlignment.Right
             };
             for (int p = 0; p <= 80; p += 10)
                 _transparencyCombo.AddItem(p + "%");
             _transparencyCombo.SelectedIndex = Math.Min(_panelTransparencyPercent / 10, 8);
             _transparencyCombo.SelectedItemChanged += TransparencyCombo_SelectedItemChanged;
 
-            var transparencyRow = new StackPanel
+            var transparencyRow = new Grid(1, 2)
             {
-                Orientation = Orientation.Horizontal,
-                Margin = PanelStyles.ST(2)
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
-            transparencyRow.AddChild(transparencyLabel);
-            transparencyRow.AddChild(_transparencyCombo);
+            transparencyRow.Rows[0].SetHeightToAuto();
+            transparencyRow.Columns[0].SetWidthInStars(1);
+            transparencyRow.Columns[1].SetWidthToAuto();
+            transparencyRow.AddChild(transparencyLabel, 0, 0);
+            transparencyRow.AddChild(_transparencyCombo, 0, 1);
 
             // --- Масштаб панели (80–150 %) ---
             var scaleLabel = new TextBlock
@@ -774,13 +850,15 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(4, 4, 8, 4)
+                Margin = PanelStyles.ST(0, 0, 8, 0),
+                TextWrapping = TextWrapping.Wrap
             };
             _scaleCombo = new ComboBox
             {
-                Width = PanelStyles.S(80),
+                Width = PanelStyles.SettingsComboWidth,
                 Height = PanelStyles.S(22),
-                Margin = PanelStyles.ST(4)
+                Margin = PanelStyles.ST(2),
+                HorizontalAlignment = HorizontalAlignment.Right
             };
             for (int p = 80; p <= 150; p += 10)
                 _scaleCombo.AddItem(p + "%");
@@ -790,30 +868,40 @@ namespace COP_v1.UI
             _isUpdatingFromCode = false;
             _scaleCombo.SelectedItemChanged += ScaleCombo_SelectedItemChanged;
 
-            var scaleRow = new StackPanel
+            var scaleRow = new Grid(1, 2)
             {
-                Orientation = Orientation.Horizontal,
-                Margin = PanelStyles.ST(2)
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = PanelStyles.ST(0, 2, 0, 2)
             };
-            scaleRow.AddChild(scaleLabel);
-            scaleRow.AddChild(_scaleCombo);
+            scaleRow.Rows[0].SetHeightToAuto();
+            scaleRow.Columns[0].SetWidthInStars(1);
+            scaleRow.Columns[1].SetWidthToAuto();
+            scaleRow.AddChild(scaleLabel, 0, 0);
+            scaleRow.AddChild(_scaleCombo, 0, 1);
+
+            var settingsRowsStack = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = PanelStyles.SettingsStackHorizontalMargin
+            };
+            settingsRowsStack.AddChild(tpCountRow);
+            settingsRowsStack.AddChild(tpVolumeModeRow);
+            settingsRowsStack.AddChild(transparencyRow);
+            settingsRowsStack.AddChild(scaleRow);
 
             var settingsContent = new StackPanel { Orientation = Orientation.Vertical };
             settingsContent.AddChild(settingsHeaderRow);
             settingsContent.AddChild(CreateSeparator());
-            settingsContent.AddChild(tpCountRow);
-            settingsContent.AddChild(tpVolumeModeRow);
-            settingsContent.AddChild(transparencyRow);
-            settingsContent.AddChild(scaleRow);
+            settingsContent.AddChild(settingsRowsStack);
 
-            // Без собственного фона: фон уже у _rootWrapper на всю высоту карточки; второй слой panelBg давал бы двойное затемнение при прозрачности.
+            // Без собственного фона: фон уже у _rootWrapper на всю высоту панели; второй слой panelBg давал бы двойное затемнение при прозрачности.
             _settingsPanelBorder = new Border
             {
                 Child = settingsContent,
                 BackgroundColor = Color.FromArgb(0, PanelStyles.PanelBackground),
                 BorderThickness = PanelStyles.ST(0),
                 CornerRadius = 0,
-                Width = PanelStyles.PanelWidth,
+                Width = PanelStyles.PanelClientWidth,
                 IsVisible = false
             };
             _settingsPanelVisible = false;
@@ -822,12 +910,12 @@ namespace COP_v1.UI
             _rootContainer = new StackPanel
             {
                 Orientation = Orientation.Vertical,
-                Width = PanelStyles.PanelWidth
+                Width = PanelStyles.PanelClientWidth
             };
             _rootContainer.AddChild(_mainPanelRoot);
             _rootContainer.AddChild(_settingsPanelBorder);
 
-            // ===== Единственная видимая рамка карточки (cAlgo: Chart.AddControl принимает Control) =====
+            // ===== Единственная видимая внешняя рамка панели (cAlgo: Chart.AddControl принимает Control) =====
             _rootWrapper = new Border
             {
                 Child = _rootContainer,
@@ -837,6 +925,8 @@ namespace COP_v1.UI
                 BackgroundColor = panelBg,
                 BorderColor = PanelStyles.PanelBorderColor,
                 BorderThickness = PanelStyles.ST(1),
+                // Совпадает с толщиной рамки: контент не рисуется поверх линии обводки (в т.ч. верхний правый угол).
+                Padding = PanelStyles.ST(1),
                 CornerRadius = PanelStyles.CornerRadiusPanel,
                 Width = PanelStyles.PanelWidth
             };
@@ -869,8 +959,8 @@ namespace COP_v1.UI
         /// </summary>
         public Border RootControl => _rootWrapper;
 
-        /// <summary>Текущее состояние чекбокса Fast Order.</summary>
-        public bool IsFastOrder => _fastOrderCheckBox.IsChecked == true;
+        /// <summary>Fast Order включён (сегмент ON).</summary>
+        public bool IsFastOrder => _fastOrderOn;
 
         /// <summary>Текущее значение риска из поля ввода (как строка).</summary>
         public string RiskText => _riskTextBox.Text;
@@ -911,12 +1001,13 @@ namespace COP_v1.UI
             _isUpdatingFromCode = false;
         }
 
-        /// <summary>Установить чекбокс Fast Order и стиль мини-кнопки FST (без вызова <see cref="OnFastOrderToggled"/>).</summary>
+        /// <summary>Установить сегмент Fast Order и стиль мини-кнопки FST (без вызова <see cref="OnFastOrderToggled"/>).</summary>
         public void SetFastOrderChecked(bool value)
         {
             _isUpdatingFromCode = true;
-            _fastOrderCheckBox.IsChecked = value;
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, value, PanelStyles.MiniModeButtonMargin);
+            _fastOrderOn = value;
+            ApplyFastOrderToggleVisual();
+            PanelStyles.ApplyMiniFastOrderButtonStyle(_miniFoButton, value, PanelStyles.MiniModeButtonMargin);
             _miniFoButton.FontSize = MiniButtonFontSize;
             _isUpdatingFromCode = false;
         }
@@ -1038,9 +1129,9 @@ namespace COP_v1.UI
         /// </summary>
         public void UpdateSubmitButton(int direction, bool isLimit, string symbolName, string volumeLots)
         {
-            if (_fastOrderCheckBox.IsChecked == true)
+            if (_fastOrderOn)
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, 0);
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(4, 4, 4, 6));
                 _submitButton.Text = Localization.Get("PlaceOrder");
                 ApplyMiniSubmitButtonStyle(0);
                 _miniSubmitButton.IsEnabled = false;
@@ -1050,7 +1141,7 @@ namespace COP_v1.UI
 
             if (direction == 0)
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, -1);
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, -1, PanelStyles.ST(4, 4, 4, 6));
                 _submitButton.Text = Localization.Get("InvalidLevels");
                 ApplyMiniSubmitButtonStyle(-1);
                 _miniSubmitButton.IsEnabled = false;
@@ -1058,7 +1149,7 @@ namespace COP_v1.UI
             }
             else if (direction == 1)
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, 1);
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, 1, PanelStyles.ST(4, 4, 4, 6));
                 _submitButton.Text = isLimit
                     ? Localization.Get("LimitLong", symbolName, volumeLots)
                     : Localization.Get("BuyMarket", symbolName, volumeLots);
@@ -1068,7 +1159,7 @@ namespace COP_v1.UI
             }
             else
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, 1);
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, 1, PanelStyles.ST(4, 4, 4, 6));
                 _submitButton.Text = isLimit
                     ? Localization.Get("LimitShort", symbolName, volumeLots)
                     : Localization.Get("SellMarket", symbolName, volumeLots);
@@ -1093,7 +1184,7 @@ namespace COP_v1.UI
             if (!isLimit)
                 _priceTextBox.IsReadOnly = true;
             else
-                _priceTextBox.IsReadOnly = (_fastOrderCheckBox.IsChecked == true);
+                _priceTextBox.IsReadOnly = _fastOrderOn;
         }
 
         /// <summary>
@@ -1151,14 +1242,14 @@ namespace COP_v1.UI
             IsMarketActive = false;
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
-            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0);
+            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(4, 4, 4, 6));
             _submitButton.Text = Localization.Get("PlaceOrder");
             PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
             PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
             ApplyMiniSubmitButtonStyle(0);
             _miniSubmitButton.Text = "OK";
             _miniSubmitButton.IsEnabled = false;
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, IsFastOrder, PanelStyles.MiniModeButtonMargin);
+            PanelStyles.ApplyMiniFastOrderButtonStyle(_miniFoButton, IsFastOrder, PanelStyles.MiniModeButtonMargin);
             _miniLimitButton.FontSize = MiniButtonFontSize;
             _miniMarketButton.FontSize = MiniButtonFontSize;
             _miniSubmitButton.FontSize = MiniButtonFontSize;
@@ -1247,7 +1338,7 @@ namespace COP_v1.UI
             OnScaleChanged?.Invoke(percent);
         }
 
-        /// <summary>Применить прозрачность фона карточки (один слой на <see cref="_rootWrapper"/>).</summary>
+        /// <summary>Применить прозрачность фона панели (один слой на <see cref="_rootWrapper"/>).</summary>
         private void ApplyPanelTransparency(int percent)
         {
             _panelTransparencyPercent = Math.Max(0, Math.Min(percent, 80));
@@ -1328,20 +1419,33 @@ namespace COP_v1.UI
         private void SetFastOrder(bool value)
         {
             _isUpdatingFromCode = true;
-            _fastOrderCheckBox.IsChecked = value;
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, value, PanelStyles.MiniModeButtonMargin);
+            _fastOrderOn = value;
+            ApplyFastOrderToggleVisual();
+            PanelStyles.ApplyMiniFastOrderButtonStyle(_miniFoButton, value, PanelStyles.MiniModeButtonMargin);
             _miniFoButton.FontSize = MiniButtonFontSize;
             OnFastOrderToggled?.Invoke(value);
             _isUpdatingFromCode = false;
         }
 
-        private void FastOrderCheckBox_Click(CheckBoxEventArgs args)
+        /// <summary>Подсветка сегментов OFF/ON по текущему состоянию Fast Order.</summary>
+        private void ApplyFastOrderToggleVisual()
+        {
+            PanelStyles.ApplyFastOrderSegmentButton(_fastOrderOffButton, !_fastOrderOn, isOnSegment: false);
+            PanelStyles.ApplyFastOrderSegmentButton(_fastOrderOnButton, _fastOrderOn, isOnSegment: true);
+        }
+
+        private void FastOrderOffButton_Click(ButtonClickEventArgs args)
         {
             if (_isUpdatingFromCode) return;
-            bool isChecked = _fastOrderCheckBox.IsChecked == true;
-            PanelStyles.ApplyModeButtonStyle(_miniFoButton, isChecked, PanelStyles.MiniModeButtonMargin);
-            _miniFoButton.FontSize = MiniButtonFontSize;
-            OnFastOrderToggled?.Invoke(isChecked);
+            if (!_fastOrderOn) return;
+            SetFastOrder(false);
+        }
+
+        private void FastOrderOnButton_Click(ButtonClickEventArgs args)
+        {
+            if (_isUpdatingFromCode) return;
+            if (_fastOrderOn) return;
+            SetFastOrder(true);
         }
 
         private void LimitButton_Click(ButtonClickEventArgs args) => ActivateLimit();
@@ -1438,14 +1542,16 @@ namespace COP_v1.UI
         }
 
         /// <summary>Тонкий горизонтальный разделитель.</summary>
-        private Border CreateSeparator()
+        /// <param name="marginTop">Верхний отступ до линии (базовые единицы, масштабируются через <see cref="PanelStyles.S"/>).</param>
+        /// <param name="marginBottom">Нижний отступ после линии.</param>
+        private Border CreateSeparator(double marginTop = 2, double marginBottom = 2)
         {
             return new Border
             {
                 BackgroundColor = PanelStyles.SeparatorLineColor,
                 Height = Math.Max(1, PanelStyles.S(1)),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(0, 2, 0, 2)
+                Margin = PanelStyles.ST(0, marginTop, 0, marginBottom)
             };
         }
 
@@ -1455,7 +1561,7 @@ namespace COP_v1.UI
             return new StackPanel
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Width = PanelStyles.PanelWidth - PanelStyles.S(80)
+                Width = PanelStyles.PanelClientWidth - PanelStyles.S(80)
             };
         }
 

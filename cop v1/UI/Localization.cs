@@ -62,18 +62,42 @@ namespace COP_v1.UI
                 [Language.NL] = "Actief",
                 [Language.PT] = "Ativa"
             },
-            // --- Чекбоксы ---
+            // --- Подпись рядом с тумблером Fast Order (короткая, чтобы освободить место под OFF/ON) ---
             ["FastOrder"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "fast order",
-                [Language.RU] = "быстрый ордер",
-                [Language.DE] = "Schnellorder",
-                [Language.FR] = "Ordre rapide",
-                [Language.ES] = "Orden rápida",
-                [Language.IT] = "Ordine rapido",
-                [Language.PL] = "Szybkie zlecenie",
-                [Language.NL] = "Snelle order",
-                [Language.PT] = "Ordem rápida"
+                [Language.EN] = "fast",
+                [Language.RU] = "быстро",
+                [Language.DE] = "Schnell",
+                [Language.FR] = "rapide",
+                [Language.ES] = "rápido",
+                [Language.IT] = "veloce",
+                [Language.PL] = "szybko",
+                [Language.NL] = "snel",
+                [Language.PT] = "rápido"
+            },
+            ["FastOrderOff"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "OFF",
+                [Language.RU] = "OFF",
+                [Language.DE] = "OFF",
+                [Language.FR] = "OFF",
+                [Language.ES] = "OFF",
+                [Language.IT] = "OFF",
+                [Language.PL] = "OFF",
+                [Language.NL] = "OFF",
+                [Language.PT] = "OFF"
+            },
+            ["FastOrderOn"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "ON",
+                [Language.RU] = "ON",
+                [Language.DE] = "ON",
+                [Language.FR] = "ON",
+                [Language.ES] = "ON",
+                [Language.IT] = "ON",
+                [Language.PL] = "ON",
+                [Language.NL] = "ON",
+                [Language.PT] = "ON"
             },
             ["Spread"] = new Dictionary<Language, string>
             {

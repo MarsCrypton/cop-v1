@@ -110,8 +110,11 @@ namespace COP_v1.UI
         /// <summary>Горизонтальные разделители внутри контента</summary>
         public static readonly Color SeparatorLineColor = Color.FromHex("1F1F1F");
 
-        /// <summary>Рамка внешних панелей</summary>
+        /// <summary>Внешняя рамка корневой панели (<c>_rootWrapper</c>).</summary>
         public static readonly Color PanelBorderColor = Color.FromHex("333333");
+
+        /// <summary>Рамка тумблера Fast Order OFF/ON (акцент).</summary>
+        public static readonly Color FastOrderToggleBorderColor = Color.FromArgb(255, 235, 86, 0);
 
         /// <summary>Устаревшее имя: совпадает с фоном шапки (совместимость)</summary>
         public static readonly Color SeparatorColor = HeaderBarColor;
@@ -143,10 +146,52 @@ namespace COP_v1.UI
         private const int BaseFontSizeFooter = 9;
         private const int BasePadding = 6;
         private const int BaseCornerRadiusPanel = 6;
+
+        /// <summary>Скругление заливки под внешней рамкой карточки (рамка 1 px — радиус на 1 базовый px меньше).</summary>
+        private const int BaseCornerRadiusPanelInner = 5;
         private const int BaseHeaderBarButtonHeight = 19;
         private const int BaseHeaderBarButtonFontSize = 8;
         private const int BaseButtonCornerSubtle = 5;
         private const int BaseModeButtonHeight = 44;
+
+        /// <summary>Горизонтальный inset контента от краёв панели (база @ 100%). Единая сетка для полей/кнопок.</summary>
+        private const double BaseContentInsetX = 2;
+
+        /// <summary>Зазор между кнопками Limit/Market (база @ 100%).</summary>
+        private const double BaseModeButtonsGap = 8;
+
+        /// <summary>Фиксированная ширина комбо режима риска Percent/USD/EUR (база @ 100%).</summary>
+        private const double BaseRiskComboWidth = 84;
+
+        /// <summary>Единая ширина комбо в блоке Settings (самый длинный текст — режим объёма тейков).</summary>
+        private const double BaseSettingsComboWidth = 120;
+
+        /// <summary>Высота полей ввода: компакт (SL/TP).</summary>
+        private const int BaseInputHeightSm = 26;
+
+        /// <summary>Высота полей ввода: основная (единая для премиум-сетки).</summary>
+        private const int BaseInputHeightMd = 28;
+
+        /// <summary>Высота полей: акцентная строка (цена входа).</summary>
+        private const int BaseInputHeightLg = 32;
+
+        /// <summary>Высота кнопки Place order (база @ 100%).</summary>
+        private const int BaseSubmitButtonHeight = 36;
+
+        /// <summary>Высота сегментов Fast Order OFF/ON (база @ 100%).</summary>
+        private const int BaseFastToggleHeight = 20;
+
+        /// <summary>Ширина одного сегмента OFF/ON — запас под «OFF»/«ON» без обрезки в cTrader.</summary>
+        private const int BaseFastToggleSegmentWidth = 40;
+
+        /// <summary>Шрифт подписей сегментов (база @ 100%).</summary>
+        private const int BaseFastToggleFontSize = 9;
+
+        /// <summary>Скругление внешней рамки сегмент-тумблера (база @ 100%).</summary>
+        private const int BaseFastToggleOuterRadius = 4;
+
+        /// <summary>Скругление заливки сегментов OFF/ON — чуть меньше внешнего (учёт Padding рамки).</summary>
+        private const int BaseFastToggleInnerRadius = 3;
 
         #endregion
 
@@ -154,6 +199,63 @@ namespace COP_v1.UI
 
         /// <summary>Ширина панели в пикселях (шире прежних 208 — запас под симметричные поля мини-ряда в cTrader).</summary>
         public static double PanelWidth => S(BasePanelWidth);
+
+        /// <summary>Толщина внешней рамки корневой панели (совпадает с <c>BorderThickness</c> у <c>_rootWrapper</c>).</summary>
+        public static double RootBorderThickness => S(1);
+
+        /// <summary>
+        /// Ширина содержимого внутри <c>_rootWrapper</c> при <c>Padding</c> = толщине рамки —
+        /// фоны не перекрывают линию обводки по углам.
+        /// </summary>
+        public static double PanelClientWidth => PanelWidth - 2 * RootBorderThickness;
+
+        /// <summary>Горизонтальный отступ контента от левого/правого края панели (масштабируется).</summary>
+        public static double ContentInsetX => S(BaseContentInsetX);
+
+        /// <summary>Рабочая ширина рядов внутри <c>_contentStack</c> с симметричным inset.</summary>
+        public static double ContentWidth => PanelClientWidth - 2 * ContentInsetX;
+
+        /// <summary>Margin только по горизонтали для основного стека контента (симметричный inset).</summary>
+        public static Thickness ContentStackHorizontalMargin => ST(BaseContentInsetX, 0, BaseContentInsetX, 0);
+
+        /// <summary>Margin только по горизонтали для панели настроек (та же сетка, что у основного контента).</summary>
+        public static Thickness SettingsStackHorizontalMargin => ST(BaseContentInsetX, 0, BaseContentInsetX, 0);
+
+        /// <summary>Зазор между Limit и Market.</summary>
+        public static double ModeButtonsGap => S(BaseModeButtonsGap);
+
+        /// <summary>Ширина комбо режима риска.</summary>
+        public static double RiskComboWidth => S(BaseRiskComboWidth);
+
+        /// <summary>Единая ширина комбо в настройках.</summary>
+        public static double SettingsComboWidth => S(BaseSettingsComboWidth);
+
+        /// <summary>Высота полей SL/TP.</summary>
+        public static double InputHeightSm => S(BaseInputHeightSm);
+
+        /// <summary>Унифицированная высота полей (кроме акцентной цены входа).</summary>
+        public static double InputHeightMd => S(BaseInputHeightMd);
+
+        /// <summary>Высота поля цены входа (Limit/Market).</summary>
+        public static double InputHeightLg => S(BaseInputHeightLg);
+
+        /// <summary>Высота кнопки подтверждения ордера.</summary>
+        public static double SubmitButtonHeight => S(BaseSubmitButtonHeight);
+
+        /// <summary>Высота сегментов Fast Order OFF/ON.</summary>
+        public static double FastToggleHeight => S(BaseFastToggleHeight);
+
+        /// <summary>Ширина сегмента OFF или ON.</summary>
+        public static double FastToggleSegmentWidth => S(BaseFastToggleSegmentWidth);
+
+        /// <summary>Размер шрифта сегментов Fast Order.</summary>
+        public static int FastToggleFontSize => SF(BaseFastToggleFontSize);
+
+        /// <summary>Скругление внешней рамки сегмент-тумблера.</summary>
+        public static int FastToggleOuterRadius => SI(BaseFastToggleOuterRadius);
+
+        /// <summary>Скругление внешних углов сегментов (левый/правый pill внутри Border).</summary>
+        public static int FastToggleInnerRadius => SI(BaseFastToggleInnerRadius);
 
         /// <summary>Размер основного текста (поля, кнопки).</summary>
         public static int FontSizeNormal => SF(BaseFontSizeNormal);
@@ -175,6 +277,9 @@ namespace COP_v1.UI
 
         /// <summary>Скругление внешней рамки карточки — минимальное, чтобы углы не были острыми (слишком большое в cAlgo даёт «двойную» обводку).</summary>
         public static int CornerRadiusPanel => SI(BaseCornerRadiusPanel);
+
+        /// <summary>Скругление верхней шапки и другой заливки внутри рамки (без «ступеньки» у обводки).</summary>
+        public static int CornerRadiusPanelInner => SI(BaseCornerRadiusPanelInner);
 
         /// <summary>Алиас для скругления панели (историческое имя).</summary>
         public static int CornerRadius => CornerRadiusPanel;
@@ -263,6 +368,76 @@ namespace COP_v1.UI
 
             btn.Style = style;
             btn.CornerRadius = new CornerRadius(ButtonCornerSubtle);
+        }
+
+        /// <summary>
+        /// Мини-кнопка FST: при включённом Fast Order — зелёный (как сегмент ON), иначе как LM/MK.
+        /// </summary>
+        public static void ApplyMiniFastOrderButtonStyle(Button btn, bool fastOrderActive, Thickness margin)
+        {
+            btn.FontWeight = FontWeight.Bold;
+            btn.Margin = margin;
+
+            var style = new Style();
+            style.Set(ControlProperty.ForegroundColor, TextColor);
+            style.Set(ControlProperty.ForegroundColor, TextColor, ControlState.Hover);
+
+            if (fastOrderActive)
+            {
+                style.Set(ControlProperty.BackgroundColor, ButtonSubmitOk);
+                style.Set(ControlProperty.BackgroundColor, ButtonSubmitOkHover, ControlState.Hover);
+            }
+            else
+            {
+                style.Set(ControlProperty.BackgroundColor, ButtonInactive);
+                style.Set(ControlProperty.BackgroundColor, ButtonHover, ControlState.Hover);
+            }
+
+            btn.Style = style;
+            btn.CornerRadius = new CornerRadius(ButtonCornerSubtle);
+        }
+
+        /// <summary>
+        /// Стиль сегмента OFF/ON в тумблере Fast Order.
+        /// Активный OFF — оранжевый акцент; активный ON — зелёный (как Place order); неактивный — приглушённый.
+        /// </summary>
+        /// <param name="isOnSegment">true — кнопка «ON», false — кнопка «OFF».</param>
+        public static void ApplyFastOrderSegmentButton(Button btn, bool isActiveSegment, bool isOnSegment)
+        {
+            btn.FontSize = FastToggleFontSize;
+            btn.FontWeight = FontWeight.Bold;
+            btn.Margin = ST(0);
+
+            var style = new Style();
+            style.Set(ControlProperty.ForegroundColor, TextColor);
+            style.Set(ControlProperty.ForegroundColor, TextColor, ControlState.Hover);
+
+            if (isActiveSegment)
+            {
+                if (isOnSegment)
+                {
+                    style.Set(ControlProperty.BackgroundColor, ButtonSubmitOk);
+                    style.Set(ControlProperty.BackgroundColor, ButtonSubmitOkHover, ControlState.Hover);
+                }
+                else
+                {
+                    style.Set(ControlProperty.BackgroundColor, ButtonActive);
+                    style.Set(ControlProperty.BackgroundColor, ButtonActiveHover, ControlState.Hover);
+                }
+            }
+            else
+            {
+                style.Set(ControlProperty.BackgroundColor, ButtonInactive);
+                style.Set(ControlProperty.BackgroundColor, ButtonHover, ControlState.Hover);
+            }
+
+            btn.Style = style;
+            // Асимметричное скругление под внешнюю рамку: OFF — только слева, ON — только справа.
+            double ir = FastToggleInnerRadius;
+            if (isOnSegment)
+                btn.CornerRadius = new CornerRadius(0, ir, ir, 0);
+            else
+                btn.CornerRadius = new CornerRadius(ir, 0, 0, ir);
         }
 
         /// <summary>
