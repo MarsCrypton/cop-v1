@@ -341,7 +341,7 @@ namespace COP_v1.UI
         /// <param name="isActive">true — оранжевая (активна), false — тёмная</param>
         public static void ApplyModeButtonStyle(Button btn, bool isActive)
         {
-            ApplyModeButtonStyle(btn, isActive, ST(2));
+            ApplyModeButtonStyle(btn, isActive, ST(0));
         }
 
         /// <summary>То же с заданными отступами (мини-панель — узкие горизонтальные поля).</summary>

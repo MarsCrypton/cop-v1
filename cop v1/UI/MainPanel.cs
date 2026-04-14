@@ -352,6 +352,17 @@ namespace COP_v1.UI
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             _limitButton.Click += LimitButton_Click;
 
+            var limitBorder = new Border
+            {
+                Child = _limitButton,
+                BorderColor = PanelStyles.PanelBorderColor,
+                BorderThickness = PanelStyles.ST(1),
+                CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle),
+                Margin = PanelStyles.ST(2),
+                Padding = PanelStyles.ST(1),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+
             _marketButton = new Button
             {
                 Text = Localization.Get("Market"),
@@ -361,6 +372,17 @@ namespace COP_v1.UI
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
             _marketButton.Click += MarketButton_Click;
 
+            var marketBorder = new Border
+            {
+                Child = _marketButton,
+                BorderColor = PanelStyles.PanelBorderColor,
+                BorderThickness = PanelStyles.ST(1),
+                CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle),
+                Margin = PanelStyles.ST(2),
+                Padding = PanelStyles.ST(1),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+
             var modeGrid = new Grid(1, 2)
             {
                 Width = PanelStyles.ContentWidth,
@@ -369,8 +391,8 @@ namespace COP_v1.UI
             modeGrid.Rows[0].SetHeightToAuto();
             modeGrid.Columns[0].SetWidthInStars(1);
             modeGrid.Columns[1].SetWidthInStars(1);
-            modeGrid.AddChild(_limitButton, 0, 0);
-            modeGrid.AddChild(_marketButton, 0, 1);
+            modeGrid.AddChild(limitBorder, 0, 0);
+            modeGrid.AddChild(marketBorder, 0, 1);
 
             // ===== Блок риска (в одну строку) =====
             double riskComboHeight = PanelStyles.InputHeightSm;
@@ -537,10 +559,21 @@ namespace COP_v1.UI
                 Text = Localization.Get("PlaceOrder"),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Height = PanelStyles.SubmitButtonHeight,
-                Margin = PanelStyles.ST(2, 4, 2, 6)
+                Margin = PanelStyles.ST(0)
             };
-            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(2, 4, 2, 6)); // серая, неактивная
+            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(0)); // серая, неактивная
             _submitButton.Click += SubmitButton_Click;
+
+            var submitBorder = new Border
+            {
+                Child = _submitButton,
+                BorderColor = PanelStyles.PanelBorderColor,
+                BorderThickness = PanelStyles.ST(1),
+                CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle),
+                Margin = PanelStyles.ST(2, 4, 2, 6),
+                Padding = PanelStyles.ST(1),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
 
             // ===== Собираем контент (всё кроме заголовка) =====
             _contentStack = new StackPanel
@@ -554,7 +587,7 @@ namespace COP_v1.UI
             _contentStack.AddChild(_priceLabel);
             _contentStack.AddChild(_priceTextBox);
             _contentStack.AddChild(slTpGrid);
-            _contentStack.AddChild(_submitButton);
+            _contentStack.AddChild(submitBorder);
 
             // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
             // Та же рабочая ширина, что у основного контента (ContentWidth); Border фиксирует ширину для cTrader.
@@ -1125,7 +1158,7 @@ namespace COP_v1.UI
         {
             if (_fastOrderOn)
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(2, 4, 2, 6));
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(0));
                 _submitButton.Text = Localization.Get("PlaceOrder");
                 ApplyMiniSubmitButtonStyle(0);
                 _miniSubmitButton.IsEnabled = false;
@@ -1135,7 +1168,7 @@ namespace COP_v1.UI
 
             if (direction == 0)
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, -1, PanelStyles.ST(4, 4, 4, 6));
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, -1, PanelStyles.ST(0));
                 _submitButton.Text = Localization.Get("InvalidLevels");
                 ApplyMiniSubmitButtonStyle(-1);
                 _miniSubmitButton.IsEnabled = false;
@@ -1143,7 +1176,7 @@ namespace COP_v1.UI
             }
             else if (direction == 1)
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, 1, PanelStyles.ST(4, 4, 4, 6));
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, 1, PanelStyles.ST(0));
                 _submitButton.Text = isLimit
                     ? Localization.Get("LimitLong", symbolName, volumeLots)
                     : Localization.Get("BuyMarket", symbolName, volumeLots);
@@ -1153,7 +1186,7 @@ namespace COP_v1.UI
             }
             else
             {
-                PanelStyles.ApplySubmitButtonStyle(_submitButton, 1, PanelStyles.ST(4, 4, 4, 6));
+                PanelStyles.ApplySubmitButtonStyle(_submitButton, 1, PanelStyles.ST(0));
                 _submitButton.Text = isLimit
                     ? Localization.Get("LimitShort", symbolName, volumeLots)
                     : Localization.Get("SellMarket", symbolName, volumeLots);
@@ -1236,7 +1269,7 @@ namespace COP_v1.UI
             IsMarketActive = false;
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
-            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(2, 4, 2, 6));
+            PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(0));
             _submitButton.Text = Localization.Get("PlaceOrder");
             PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
             PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
