@@ -60,6 +60,10 @@ namespace COP_v1.UI
         // === Кнопки режимов ===
         private readonly Button _limitButton;
         private readonly Button _marketButton;
+        private Border _limitBorder;
+        private Border _marketBorder;
+        private Border _submitBorder;
+        private Border _fastOrderToggleBorder;
 
         // === Блок риска (RiskMode + значение) ===
         private readonly TextBlock _riskLabel;
@@ -274,7 +278,7 @@ namespace COP_v1.UI
             fastOrderToggleStack.AddChild(_fastOrderOffButton);
             fastOrderToggleStack.AddChild(_fastOrderOnButton);
 
-            var fastOrderToggleBorder = new Border
+            _fastOrderToggleBorder = new Border
             {
                 BackgroundColor = PanelStyles.HeaderBarColor,
                 BorderColor = PanelStyles.FastOrderToggleBorderColor,
@@ -318,7 +322,7 @@ namespace COP_v1.UI
                 Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            leftStack.AddChild(fastOrderToggleBorder);
+            leftStack.AddChild(_fastOrderToggleBorder);
             leftStack.AddChild(fastOrderLabel);
 
             var spreadStack = new StackPanel
@@ -352,14 +356,15 @@ namespace COP_v1.UI
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             _limitButton.Click += LimitButton_Click;
 
-            var limitBorder = new Border
+            _limitBorder = new Border
             {
                 Child = _limitButton,
+                BackgroundColor = PanelStyles.PanelBackground,
                 BorderColor = PanelStyles.PanelBorderColor,
-                BorderThickness = PanelStyles.ST(1),
-                CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle),
+                BorderThickness = PanelStyles.ST(0, 0, 1, 1),
+                CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
                 Margin = PanelStyles.ST(2),
-                Padding = PanelStyles.ST(1),
+                Padding = PanelStyles.ST(0, 0, 2, 2),
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
 
@@ -372,14 +377,15 @@ namespace COP_v1.UI
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
             _marketButton.Click += MarketButton_Click;
 
-            var marketBorder = new Border
+            _marketBorder = new Border
             {
                 Child = _marketButton,
+                BackgroundColor = PanelStyles.PanelBackground,
                 BorderColor = PanelStyles.PanelBorderColor,
-                BorderThickness = PanelStyles.ST(1),
-                CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle),
+                BorderThickness = PanelStyles.ST(0, 0, 1, 1),
+                CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
                 Margin = PanelStyles.ST(2),
-                Padding = PanelStyles.ST(1),
+                Padding = PanelStyles.ST(0, 0, 2, 2),
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
 
@@ -391,8 +397,8 @@ namespace COP_v1.UI
             modeGrid.Rows[0].SetHeightToAuto();
             modeGrid.Columns[0].SetWidthInStars(1);
             modeGrid.Columns[1].SetWidthInStars(1);
-            modeGrid.AddChild(limitBorder, 0, 0);
-            modeGrid.AddChild(marketBorder, 0, 1);
+            modeGrid.AddChild(_limitBorder, 0, 0);
+            modeGrid.AddChild(_marketBorder, 0, 1);
 
             // ===== Блок риска (в одну строку) =====
             double riskComboHeight = PanelStyles.InputHeightSm;
@@ -564,15 +570,16 @@ namespace COP_v1.UI
             PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(0)); // серая, неактивная
             _submitButton.Click += SubmitButton_Click;
 
-            var submitBorder = new Border
+            _submitBorder = new Border
             {
                 Child = _submitButton,
+                BackgroundColor = PanelStyles.PanelBackground,
                 BorderColor = PanelStyles.PanelBorderColor,
-                BorderThickness = PanelStyles.ST(1),
-                CornerRadius = new CornerRadius(PanelStyles.ButtonCornerSubtle),
+                BorderThickness = PanelStyles.ST(0, 0, 1, 1),
+                CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
                 Margin = PanelStyles.ST(2, 4, 2, 6),
-                Padding = PanelStyles.ST(1),
-                HorizontalAlignment = HorizontalAlignment.Stretch
+                Padding = PanelStyles.ST(0, 0, 2, 2),
+                Width = PanelStyles.ContentWidth - PanelStyles.S(4)
             };
 
             // ===== Собираем контент (всё кроме заголовка) =====
@@ -587,7 +594,7 @@ namespace COP_v1.UI
             _contentStack.AddChild(_priceLabel);
             _contentStack.AddChild(_priceTextBox);
             _contentStack.AddChild(slTpGrid);
-            _contentStack.AddChild(submitBorder);
+            _contentStack.AddChild(_submitBorder);
 
             // ===== Мини-панель: LM, MK, OK, FST (Fast Order) ====
             // Та же рабочая ширина, что у основного контента (ContentWidth); Border фиксирует ширину для cTrader.
@@ -1159,6 +1166,7 @@ namespace COP_v1.UI
             if (_fastOrderOn)
             {
                 PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(0));
+                UpdateSubmitBorderColor(0);
                 _submitButton.Text = Localization.Get("PlaceOrder");
                 ApplyMiniSubmitButtonStyle(0);
                 _miniSubmitButton.IsEnabled = false;
@@ -1169,6 +1177,7 @@ namespace COP_v1.UI
             if (direction == 0)
             {
                 PanelStyles.ApplySubmitButtonStyle(_submitButton, -1, PanelStyles.ST(0));
+                UpdateSubmitBorderColor(-1);
                 _submitButton.Text = Localization.Get("InvalidLevels");
                 ApplyMiniSubmitButtonStyle(-1);
                 _miniSubmitButton.IsEnabled = false;
@@ -1177,6 +1186,7 @@ namespace COP_v1.UI
             else if (direction == 1)
             {
                 PanelStyles.ApplySubmitButtonStyle(_submitButton, 1, PanelStyles.ST(0));
+                UpdateSubmitBorderColor(1);
                 _submitButton.Text = isLimit
                     ? Localization.Get("LimitLong", symbolName, volumeLots)
                     : Localization.Get("BuyMarket", symbolName, volumeLots);
@@ -1187,6 +1197,7 @@ namespace COP_v1.UI
             else
             {
                 PanelStyles.ApplySubmitButtonStyle(_submitButton, 1, PanelStyles.ST(0));
+                UpdateSubmitBorderColor(1);
                 _submitButton.Text = isLimit
                     ? Localization.Get("LimitShort", symbolName, volumeLots)
                     : Localization.Get("SellMarket", symbolName, volumeLots);
@@ -1248,6 +1259,7 @@ namespace COP_v1.UI
             IsMarketActive = !isLimit;
             PanelStyles.ApplyModeButtonStyle(_limitButton, isLimit);
             PanelStyles.ApplyModeButtonStyle(_marketButton, !isLimit);
+            UpdateModeBorderColors(isLimit, !isLimit);
             PanelStyles.ApplyModeButtonStyle(_miniLimitButton, isLimit, PanelStyles.MiniModeButtonMargin);
             PanelStyles.ApplyModeButtonStyle(_miniMarketButton, !isLimit, PanelStyles.MiniModeButtonMargin);
             _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
@@ -1269,7 +1281,9 @@ namespace COP_v1.UI
             IsMarketActive = false;
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
+            UpdateModeBorderColors(false, false);
             PanelStyles.ApplySubmitButtonStyle(_submitButton, 0, PanelStyles.ST(0));
+            UpdateSubmitBorderColor(0);
             _submitButton.Text = Localization.Get("PlaceOrder");
             PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
             PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
@@ -1383,6 +1397,7 @@ namespace COP_v1.UI
                 PanelStyles.ApplyModeButtonStyle(_limitButton, false);
                 PanelStyles.ApplyModeButtonStyle(_miniLimitButton, false, PanelStyles.MiniModeButtonMargin);
                 _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
+                UpdateModeBorderColors(false, IsMarketActive);
                 OnLimitClicked?.Invoke(false);
             }
             else
@@ -1398,6 +1413,7 @@ namespace COP_v1.UI
                 PanelStyles.ApplyModeButtonStyle(_limitButton, true);
                 PanelStyles.ApplyModeButtonStyle(_miniLimitButton, true, PanelStyles.MiniModeButtonMargin);
                 _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
+                UpdateModeBorderColors(true, false);
                 OnLimitClicked?.Invoke(true);
             }
         }
@@ -1410,6 +1426,7 @@ namespace COP_v1.UI
                 PanelStyles.ApplyModeButtonStyle(_marketButton, false);
                 PanelStyles.ApplyModeButtonStyle(_miniMarketButton, false, PanelStyles.MiniModeButtonMargin);
                 _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
+                UpdateModeBorderColors(IsLimitActive, false);
                 OnMarketClicked?.Invoke(false);
             }
             else
@@ -1425,6 +1442,7 @@ namespace COP_v1.UI
                 PanelStyles.ApplyModeButtonStyle(_marketButton, true);
                 PanelStyles.ApplyModeButtonStyle(_miniMarketButton, true, PanelStyles.MiniModeButtonMargin);
                 _miniLimitButton.FontSize = _miniMarketButton.FontSize = MiniButtonFontSize;
+                UpdateModeBorderColors(false, true);
                 OnMarketClicked?.Invoke(true);
             }
         }
@@ -1434,6 +1452,22 @@ namespace COP_v1.UI
         {
             if (_submitButton.IsEnabled)
                 OnSubmitClicked?.Invoke();
+        }
+
+        private void UpdateModeBorderColors(bool limitActive, bool marketActive)
+        {
+            _limitBorder.BorderColor  = limitActive  ? PanelStyles.FastOrderToggleBorderColor : PanelStyles.PanelBorderColor;
+            _marketBorder.BorderColor = marketActive ? PanelStyles.FastOrderToggleBorderColor : PanelStyles.PanelBorderColor;
+        }
+
+        private void UpdateSubmitBorderColor(int state)
+        {
+            switch (state)
+            {
+                case 1:  _submitBorder.BorderColor = PanelStyles.ButtonSubmitOk;       break;
+                case -1: _submitBorder.BorderColor = PanelStyles.ButtonSubmitErrorDim; break;
+                default: _submitBorder.BorderColor = PanelStyles.PanelBorderColor;     break;
+            }
         }
 
         /// <summary>Стиль мини-кнопки OK: как ApplySubmitButtonStyle, плюс Margin и FontSize для выравнивания с соседними мини-кнопками.</summary>
@@ -1459,6 +1493,10 @@ namespace COP_v1.UI
         {
             PanelStyles.ApplyFastOrderSegmentButton(_fastOrderOffButton, !_fastOrderOn, isOnSegment: false);
             PanelStyles.ApplyFastOrderSegmentButton(_fastOrderOnButton, _fastOrderOn, isOnSegment: true);
+            if (_fastOrderToggleBorder != null)
+                _fastOrderToggleBorder.BorderColor = _fastOrderOn
+                    ? PanelStyles.ButtonSubmitOk
+                    : PanelStyles.FastOrderToggleBorderColor;
         }
 
         private void FastOrderOffButton_Click(ButtonClickEventArgs args)
