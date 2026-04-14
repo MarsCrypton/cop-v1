@@ -23,7 +23,7 @@
 | `VPosition` | `VerticalPosition` | Вертикальная позиция панели (Top, Center, Bottom). |
 | `HPosition` | `HorizontalPosition` | Горизонтальная позиция панели (Left, Center, Right). |
 | `PanelTransparencyPercent` | `int` | Прозрачность фона панелей 0–80 % (по умолчанию 0 в параметрах бота). Можно также менять в панели настроек («...» → Panel transparency). |
-| `PanelScalePercent` | `int` | Масштаб интерфейса панели 70–150 % (по умолчанию 100). Синхронизируется с `LocalStorage` по той же схеме, что и прозрачность; применяется через `PanelStyles.SetScalePercent` до создания панели. |
+| `PanelScale` | `PanelScale` | Масштаб интерфейса панели: выпадающий список **Scale80** … **Scale150** (шаг 10 %, по умолчанию **Scale100**). Синхронизируется с `LocalStorage` по той же схеме, что и прозрачность; применяется через `PanelStyles.SetScalePercent` до создания панели. |
 | `RiskMode` | `RiskMode` | Режим риска: Percent / USD / EUR. По умолчанию Percent. |
 | `MaxRiskPercent` | `double` | Максимальный риск в % от баланса (0.1–100). |
 | `MaxRiskUsd` | `double` | Максимальный риск суммой в USD (> 0). |

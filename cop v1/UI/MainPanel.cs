@@ -42,7 +42,7 @@ namespace COP_v1.UI
         /// <summary>Вызывается при изменении прозрачности фона панели из настроек. Аргумент: новый процент (0–80).</summary>
         public event Action<int> OnTransparencyChanged;
 
-        /// <summary>Вызывается при выборе масштаба панели в настройках (70–150 %).</summary>
+        /// <summary>Вызывается при выборе масштаба панели в настройках (80–150 %).</summary>
         public event Action<int> OnScaleChanged;
 
         /// <summary>Текущий процент прозрачности фона панелей (0–80).</summary>
@@ -743,7 +743,7 @@ namespace COP_v1.UI
             transparencyRow.AddChild(transparencyLabel);
             transparencyRow.AddChild(_transparencyCombo);
 
-            // --- Масштаб панели (70–150 %) ---
+            // --- Масштаб панели (80–150 %) ---
             var scaleLabel = new TextBlock
             {
                 Text = Localization.Get("PanelScaleLabel"),
@@ -758,10 +758,10 @@ namespace COP_v1.UI
                 Height = PanelStyles.S(22),
                 Margin = PanelStyles.ST(4)
             };
-            for (int p = 70; p <= 150; p += 10)
+            for (int p = 80; p <= 150; p += 10)
                 _scaleCombo.AddItem(p + "%");
             _isUpdatingFromCode = true;
-            int scaleIdx = Math.Max(0, Math.Min(8, (PanelStyles.ScalePercent - 70) / 10));
+            int scaleIdx = Math.Max(0, Math.Min(7, (PanelStyles.ScalePercent - 80) / 10));
             _scaleCombo.SelectedIndex = scaleIdx;
             _isUpdatingFromCode = false;
             _scaleCombo.SelectedItemChanged += ScaleCombo_SelectedItemChanged;
@@ -1218,8 +1218,8 @@ namespace COP_v1.UI
         {
             if (_isUpdatingFromCode) return;
             int idx = _scaleCombo.SelectedIndex;
-            if (idx < 0 || idx > 8) return;
-            int percent = 70 + idx * 10;
+            if (idx < 0 || idx > 7) return;
+            int percent = 80 + idx * 10;
             OnScaleChanged?.Invoke(percent);
         }
 

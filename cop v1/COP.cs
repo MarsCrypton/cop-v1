@@ -26,8 +26,9 @@ namespace COP_v1
         [Parameter("Panel transparency %", Group = "Panel alignment", DefaultValue = 0, MinValue = 0, MaxValue = 80)]
         public int PanelTransparencyPercent { get; set; }
 
-        [Parameter("Panel scale %", Group = "Panel alignment", DefaultValue = 100, MinValue = 70, MaxValue = 150)]
-        public int PanelScalePercent { get; set; }
+        /// <summary>Выпадающий список в настройках экземпляра: 80–150 % с шагом 10.</summary>
+        [Parameter("Panel scale %", Group = "Panel alignment", DefaultValue = PanelScale.Scale100)]
+        public PanelScale PanelScale { get; set; }
 
         #endregion
 
@@ -86,15 +87,16 @@ namespace COP_v1
                 _currentRiskMode = RiskMode;
 
             // Масштаб UI панели: та же схема приоритета, что и для прозрачности (параметр ↔ LocalStorage).
+            int paramScale = Math.Max(80, Math.Min(150, (int)PanelScale));
             int savedScale = LoadSavedScalePercent();
             int panelScale;
             if (savedScale < 0)
             {
-                panelScale = PanelScalePercent;
+                panelScale = paramScale;
             }
-            else if (savedScale != PanelScalePercent)
+            else if (savedScale != paramScale)
             {
-                panelScale = PanelScalePercent;
+                panelScale = paramScale;
                 SaveScalePercent(panelScale);
             }
             else
@@ -534,7 +536,7 @@ namespace COP_v1
         private const string ScaleStorageKey = "COP PanelScalePercent";
 
         /// <summary>
-        /// Загрузить сохранённый масштаб панели (70–150 %). Если нет или невалидно — <c>-1</c>.
+        /// Загрузить сохранённый масштаб панели (80–150 %). Если нет или невалидно — <c>-1</c>.
         /// </summary>
         private int LoadSavedScalePercent()
         {
@@ -544,7 +546,7 @@ namespace COP_v1
                 if (string.IsNullOrWhiteSpace(saved)) return -1;
                 saved = saved.Trim();
                 if (int.TryParse(saved, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
-                    return Math.Max(70, Math.Min(result, 150));
+                    return Math.Max(80, Math.Min(result, 150));
             }
             catch { }
             return -1;
@@ -554,7 +556,7 @@ namespace COP_v1
         {
             try
             {
-                int clamped = Math.Max(70, Math.Min(percent, 150));
+                int clamped = Math.Max(80, Math.Min(percent, 150));
                 LocalStorage.SetString(ScaleStorageKey, clamped.ToString(CultureInfo.InvariantCulture), LocalStorageScope.Device);
                 LocalStorage.Flush(LocalStorageScope.Device);
             }
@@ -1382,7 +1384,7 @@ namespace COP_v1
 
         private void HandlePanelScaleChanged(int percent)
         {
-            int clamped = Math.Max(70, Math.Min(150, percent));
+            int clamped = Math.Max(80, Math.Min(150, percent));
             if (clamped == PanelStyles.ScalePercent)
                 return;
 
@@ -1435,6 +1437,21 @@ namespace COP_v1
         Left,
         Center,
         Right
+    }
+
+    /// <summary>
+    /// Масштаб панели в настройках экземпляра бота (выпадающий список 80–150 %, шаг 10).
+    /// </summary>
+    public enum PanelScale
+    {
+        Scale80 = 80,
+        Scale90 = 90,
+        Scale100 = 100,
+        Scale110 = 110,
+        Scale120 = 120,
+        Scale130 = 130,
+        Scale140 = 140,
+        Scale150 = 150
     }
 
     /// <summary>

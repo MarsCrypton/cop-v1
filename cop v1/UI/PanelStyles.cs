@@ -17,16 +17,16 @@ namespace COP_v1.UI
         /// <summary>Текущий коэффициент масштаба (1.0 = 100%).</summary>
         public static double UiScale => _scalePercent / 100.0;
 
-        /// <summary>Текущий масштаб в процентах (70–150 после нормализации).</summary>
+        /// <summary>Текущий масштаб в процентах (80–150 после нормализации).</summary>
         public static int ScalePercent => _scalePercent;
 
         /// <summary>
-        /// Задать масштаб панели в процентах. Значение ограничивается диапазоном 70–150.
+        /// Задать масштаб панели в процентах. Значение ограничивается диапазоном 80–150.
         /// До вызова используется 100%.
         /// </summary>
         public static void SetScalePercent(int percent)
         {
-            if (percent < 70) percent = 70;
+            if (percent < 80) percent = 80;
             if (percent > 150) percent = 150;
             _scalePercent = percent;
         }
