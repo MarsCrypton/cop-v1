@@ -182,7 +182,7 @@ namespace COP_v1.UI
         private const int BaseFastToggleHeight = 20;
 
         /// <summary>Ширина одного сегмента OFF/ON — запас под «OFF»/«ON» без обрезки в cTrader.</summary>
-        private const int BaseFastToggleSegmentWidth = 40;
+        private const int BaseFastToggleSegmentWidth = 46;
 
         /// <summary>Шрифт подписей сегментов (база @ 100%).</summary>
         private const int BaseFastToggleFontSize = 9;

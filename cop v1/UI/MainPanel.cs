@@ -384,9 +384,10 @@ namespace COP_v1.UI
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = PanelStyles.ST(2)
             };
-            _riskModeCombo.AddItem("Percent");
-            _riskModeCombo.AddItem("USD");
-            _riskModeCombo.AddItem("EUR");
+            _riskModeCombo.AddItem("  Percent");
+            _riskModeCombo.AddItem("  USD");
+            _riskModeCombo.AddItem("  EUR");
+            _riskModeCombo.FontSize = PanelStyles.FontSizeSmall;
             _riskModeCombo.SelectedIndex = 0;
             _riskModeCombo.SelectedItemChanged += RiskModeCombo_SelectedItemChanged;
 
@@ -752,9 +753,10 @@ namespace COP_v1.UI
                 Margin = PanelStyles.ST(2),
                 HorizontalAlignment = HorizontalAlignment.Right
             };
-            _tpCountCombo.AddItem(Localization.Get("TpCount1"));
-            _tpCountCombo.AddItem(Localization.Get("TpCount2"));
-            _tpCountCombo.AddItem(Localization.Get("TpCount3"));
+            _tpCountCombo.AddItem("  " + Localization.Get("TpCount1"));
+            _tpCountCombo.AddItem("  " + Localization.Get("TpCount2"));
+            _tpCountCombo.AddItem("  " + Localization.Get("TpCount3"));
+            _tpCountCombo.FontSize = PanelStyles.FontSizeSmall;
             _tpCountCombo.SelectedItemChanged += _ => OnTpAllocationSettingsChanged?.Invoke();
             // По умолчанию 1 тейк (индекс 0).
             _tpCountCombo.SelectedIndex = 0;
@@ -786,8 +788,9 @@ namespace COP_v1.UI
                 Margin = PanelStyles.ST(2),
                 HorizontalAlignment = HorizontalAlignment.Right
             };
-            _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualVolume"));
-            _tpVolumeModeCombo.AddItem(Localization.Get("TpVolumeEqualProfit"));
+            _tpVolumeModeCombo.AddItem("  " + Localization.Get("TpVolumeEqualVolume"));
+            _tpVolumeModeCombo.AddItem("  " + Localization.Get("TpVolumeEqualProfit"));
+            _tpVolumeModeCombo.FontSize = PanelStyles.FontSizeSmall;
             _tpVolumeModeCombo.SelectedIndex = 0; // равный объём по умолчанию
             _tpVolumeModeCombo.SelectedItemChanged += _ => OnTpAllocationSettingsChanged?.Invoke();
             var tpVolumeModeRow = new Grid(1, 2)
@@ -819,7 +822,8 @@ namespace COP_v1.UI
                 HorizontalAlignment = HorizontalAlignment.Right
             };
             for (int p = 0; p <= 80; p += 10)
-                _transparencyCombo.AddItem(p + "%");
+                _transparencyCombo.AddItem("  " + p + "%");
+            _transparencyCombo.FontSize = PanelStyles.FontSizeSmall;
             _transparencyCombo.SelectedIndex = Math.Min(_panelTransparencyPercent / 10, 8);
             _transparencyCombo.SelectedItemChanged += TransparencyCombo_SelectedItemChanged;
 
@@ -852,7 +856,8 @@ namespace COP_v1.UI
                 HorizontalAlignment = HorizontalAlignment.Right
             };
             for (int p = 80; p <= 150; p += 10)
-                _scaleCombo.AddItem(p + "%");
+                _scaleCombo.AddItem("  " + p + "%");
+            _scaleCombo.FontSize = PanelStyles.FontSizeSmall;
             _isUpdatingFromCode = true;
             int scaleIdx = Math.Max(0, Math.Min(7, (PanelStyles.ScalePercent - 80) / 10));
             _scaleCombo.SelectedIndex = scaleIdx;
