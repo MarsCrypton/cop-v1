@@ -142,10 +142,11 @@ namespace COP_v1.UI
         private const int BaseFontSizeHeaderMini = 10;
         private const int BaseFontSizeFooter = 9;
         private const int BasePadding = 6;
-        private const int BaseCornerRadiusPanel = 3;
+        private const int BaseCornerRadiusPanel = 6;
         private const int BaseHeaderBarButtonHeight = 19;
         private const int BaseHeaderBarButtonFontSize = 8;
-        private const int BaseButtonCornerSubtle = 2;
+        private const int BaseButtonCornerSubtle = 5;
+        private const int BaseModeButtonHeight = 44;
 
         #endregion
 
@@ -184,8 +185,11 @@ namespace COP_v1.UI
         /// <summary>Шрифт кнопок Set / Full-Mini в шапке.</summary>
         public static int HeaderBarButtonFontSize => SF(BaseHeaderBarButtonFontSize);
 
-        /// <summary>Лёгкое скругление кнопок (меньше, чем раньше).</summary>
+        /// <summary>Лёгкое скругление кнопок.</summary>
         public static int ButtonCornerSubtle => SI(BaseButtonCornerSubtle);
+
+        /// <summary>Высота кнопок Limit / Market.</summary>
+        public static double ModeButtonHeight => S(BaseModeButtonHeight);
 
         /// <summary>Толщина линий на графике (не масштабируется — объекты графика).</summary>
         public const int LineThickness = 1;

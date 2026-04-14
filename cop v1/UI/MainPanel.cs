@@ -286,7 +286,7 @@ namespace COP_v1.UI
             {
                 Text = Localization.Get("Limit"),
                 Width = halfWidth,
-                Height = PanelStyles.S(32)
+                Height = PanelStyles.ModeButtonHeight
             };
             PanelStyles.ApplyModeButtonStyle(_limitButton, false);
             _limitButton.Click += LimitButton_Click;
@@ -295,7 +295,7 @@ namespace COP_v1.UI
             {
                 Text = Localization.Get("Market"),
                 Width = halfWidth,
-                Height = PanelStyles.S(32)
+                Height = PanelStyles.ModeButtonHeight
             };
             PanelStyles.ApplyModeButtonStyle(_marketButton, false);
             _marketButton.Click += MarketButton_Click;
@@ -314,7 +314,7 @@ namespace COP_v1.UI
 
             // ===== Блок риска (в одну строку) =====
             double riskComboWidth = PanelStyles.S(84);
-            double riskComboHeight = PanelStyles.S(22);
+            double riskComboHeight = PanelStyles.S(26);
             _riskLabel = new TextBlock { Text = Localization.Get("Risk") };
             PanelStyles.ApplyLabelStyle(_riskLabel);
 
@@ -389,6 +389,7 @@ namespace COP_v1.UI
                 Text = "",
                 IsReadOnly = true,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
+                Height = PanelStyles.S(32),
                 Margin = PanelStyles.ST(2, 2, 2, 2)
             };
             PanelStyles.ApplyTextBoxStyle(_priceTextBox);
@@ -402,12 +403,14 @@ namespace COP_v1.UI
             // -- SL --
             _slLabel = new TextBlock { Text = Localization.Get("StopLoss") };
             PanelStyles.ApplyLabelStyle(_slLabel);
+            _slLabel.ForegroundColor = PanelStyles.ButtonActive;
 
             _slTextBox = new TextBox
             {
                 Text = "",
                 IsReadOnly = true,
                 Width = colWidth - PanelStyles.S(4),
+                Height = PanelStyles.S(26),
                 Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_slTextBox);
@@ -424,12 +427,14 @@ namespace COP_v1.UI
             // -- TP --
             _tpLabel = new TextBlock { Text = Localization.Get("TakeProfit") };
             PanelStyles.ApplyLabelStyle(_tpLabel);
+            _tpLabel.ForegroundColor = PanelStyles.ButtonSubmitOk;
 
             _tpTextBox = new TextBox
             {
                 Text = "",
                 IsReadOnly = true,
                 Width = colWidth - PanelStyles.S(4),
+                Height = PanelStyles.S(26),
                 Margin = PanelStyles.ST(2)
             };
             PanelStyles.ApplyTextBoxStyle(_tpTextBox);
