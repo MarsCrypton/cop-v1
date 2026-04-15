@@ -284,9 +284,9 @@ namespace COP_v1.UI
                 BorderColor = PanelStyles.FastOrderToggleBorderColor,
                 BorderThickness = PanelStyles.ST(1),
                 CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
-                // Padding: left=0 (border thickness compensates), top=0, right=1, bottom=1
-                Padding = PanelStyles.ST(0, 0, 1, 1),
-                Margin = PanelStyles.ST(0, 2, 8, 2),
+                Padding = PanelStyles.ST(1),
+                // Left margin 2px to align with Limit/Market button edge (which has Margin=ST(2))
+                Margin = PanelStyles.ST(2, 2, 8, 2),
                 Child = fastOrderToggleStack,
                 VerticalAlignment = VerticalAlignment.Center
             };
