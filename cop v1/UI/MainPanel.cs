@@ -297,7 +297,7 @@ namespace COP_v1.UI
                 ForegroundColor = PanelStyles.TextColor,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(0, 0, 10, 0)
+                Margin = PanelStyles.ST(0, 0, 6, 0)
             };
 
             var spreadLabel = new TextBlock
@@ -326,6 +326,15 @@ namespace COP_v1.UI
             leftStack.AddChild(_fastOrderToggleBorder);
             leftStack.AddChild(fastOrderLabel);
 
+            // Vertical separator between Fast toggle and Spread info
+            var separator = new Border
+            {
+                Width = PanelStyles.S(1),
+                Height = PanelStyles.S(14),
+                BackgroundColor = Color.FromHex("3a3a3a"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
             var spreadStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -335,16 +344,19 @@ namespace COP_v1.UI
             spreadStack.AddChild(spreadLabel);
             spreadStack.AddChild(_spreadValueText);
 
-            var checkboxRow = new Grid(1, 2)
+            // 3-column grid: Auto | 1px separator | 1*
+            var checkboxRow = new Grid(1, 3)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = PanelStyles.ST(0, 2, 0, 2)
             };
             checkboxRow.Rows[0].SetHeightToAuto();
             checkboxRow.Columns[0].SetWidthToAuto();
-            checkboxRow.Columns[1].SetWidthInStars(1);
+            checkboxRow.Columns[1].SetWidthToAuto(); // separator: Border sets its own Width=1px
+            checkboxRow.Columns[2].SetWidthInStars(1);
             checkboxRow.AddChild(leftStack, 0, 0);
-            checkboxRow.AddChild(spreadStack, 0, 1);
+            checkboxRow.AddChild(separator, 0, 1);
+            checkboxRow.AddChild(spreadStack, 0, 2);
 
             // ===== Кнопки режимов =====
             // Grid(1,2) со Star-колонками — гарантирует симметричный отступ без фиксированных Width.
