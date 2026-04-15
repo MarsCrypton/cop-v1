@@ -284,7 +284,8 @@ namespace COP_v1.UI
                 BorderColor = PanelStyles.FastOrderToggleBorderColor,
                 BorderThickness = PanelStyles.ST(1),
                 CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
-                Padding = PanelStyles.ST(1),
+                // Padding: left=0 (border thickness compensates), top=0, right=1, bottom=1
+                Padding = PanelStyles.ST(0, 0, 1, 1),
                 Margin = PanelStyles.ST(0, 2, 8, 2),
                 Child = fastOrderToggleStack,
                 VerticalAlignment = VerticalAlignment.Center
