@@ -27,6 +27,7 @@ namespace COP_v1.UI
         private readonly StackPanel _mainStack;
 
         // === Заголовок ===
+        private const string TitleAccentMarker = "[ ' ' ] ";
         private readonly TextBlock _titleText;
         private readonly Button _settingsButton;
         private readonly Button _toggleButton;
@@ -165,14 +166,27 @@ namespace COP_v1.UI
             Color panelBg = PanelStyles.GetPanelBackgroundWithTransparency(_panelTransparencyPercent);
 
             // ===== Заголовок: «COP v1» по центру зоны слева от кнопок + Set / Full =====
+            var titleAccentText = new TextBlock
+            {
+                Text = TitleAccentMarker,
+                ForegroundColor = PanelStyles.ButtonActive,
+                FontSize = PanelStyles.FontSizeHeaderExpanded,
+                FontWeight = FontWeight.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                TextAlignment = TextAlignment.Center,
+                // Оптическое выравнивание с "COP v1": у маркера с кавычками baseline визуально ниже.
+                Margin = PanelStyles.ST(0, 0, 0, 1)
+            };
+
             _titleText = new TextBlock
             {
                 Text = Localization.Get("PanelTitle"),
                 ForegroundColor = PanelStyles.TextColor,
                 FontSize = PanelStyles.FontSizeHeaderExpanded,
-                FontWeight = FontWeight.Normal,
+                FontWeight = FontWeight.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom,
                 TextAlignment = TextAlignment.Center
             };
 
@@ -211,7 +225,15 @@ namespace COP_v1.UI
             };
             titleCell.Rows[0].SetHeightToAuto();
             titleCell.Columns[0].SetWidthInStars(1);
-            titleCell.AddChild(_titleText, 0, 0);
+            var titleStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom
+            };
+            titleStack.AddChild(titleAccentText);
+            titleStack.AddChild(_titleText);
+            titleCell.AddChild(titleStack, 0, 0);
 
             var headerButtonsGrid = new Grid(1, 2)
             {
@@ -285,25 +307,46 @@ namespace COP_v1.UI
                 BorderThickness = PanelStyles.ST(1),
                 CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
                 Padding = PanelStyles.ST(1),
-                // Left margin 2px to align with Limit/Market button edge (which has Margin=ST(2))
-                Margin = PanelStyles.ST(2, 2, 8, 2),
+                // Left margin 2px to align with Limit/Market button edge (which has Margin=ST(2)).
+                // Right margin equals dash-to-label gap for symmetric spacing around "—".
+                Margin = PanelStyles.ST(2, 2, 4, 2),
                 Child = fastOrderToggleStack,
                 VerticalAlignment = VerticalAlignment.Center
             };
 
-            var fastOrderLabel = new TextBlock
+            string fastOrderText = Localization.Get("FastOrder");
+            if (!string.IsNullOrWhiteSpace(fastOrderText) && fastOrderText.StartsWith("—", StringComparison.Ordinal))
+                fastOrderText = fastOrderText.TrimStart('—', ' ');
+
+            var fastOrderDash = new TextBlock
             {
-                Text = Localization.Get("FastOrder"),
+                Text = "—",
                 ForegroundColor = PanelStyles.TextColor,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(0, 0, 6, 0)
+                Margin = PanelStyles.ST(0, 0, 4, 0)
             };
+
+            var fastOrderLabel = new TextBlock
+            {
+                Text = fastOrderText,
+                ForegroundColor = PanelStyles.TextColor,
+                FontSize = PanelStyles.FontSizeSmall,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var fastOrderLabelStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            fastOrderLabelStack.AddChild(fastOrderDash);
+            fastOrderLabelStack.AddChild(fastOrderLabel);
 
             var spreadLabel = new TextBlock
             {
                 Text = Localization.Get("Spread"),
-                ForegroundColor = PanelStyles.TextColor,
+                ForegroundColor = PanelStyles.TextMuted,
                 FontSize = PanelStyles.FontSizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = PanelStyles.ST(0, 0, 6, 0)
@@ -324,39 +367,41 @@ namespace COP_v1.UI
                 VerticalAlignment = VerticalAlignment.Center
             };
             leftStack.AddChild(_fastOrderToggleBorder);
-            leftStack.AddChild(fastOrderLabel);
-
-            // Vertical separator between Fast toggle and Spread info
-            var separator = new Border
-            {
-                Width = PanelStyles.S(1),
-                Height = PanelStyles.S(14),
-                BackgroundColor = Color.FromHex("3a3a3a"),
-                VerticalAlignment = VerticalAlignment.Center
-            };
+            leftStack.AddChild(fastOrderLabelStack);
 
             var spreadStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center
             };
             spreadStack.AddChild(spreadLabel);
             spreadStack.AddChild(_spreadValueText);
 
-            // 3-column grid: Auto | 1px separator | 1*
+            // Pill-style capsule border for spread info
+            var spreadBorder = new Border
+            {
+                Child = spreadStack,
+                BorderColor = Color.FromHex("3a3a3a"),
+                BorderThickness = PanelStyles.ST(1),
+                CornerRadius = new CornerRadius(PanelStyles.FastToggleInnerRadius),
+                Padding = PanelStyles.ST(6, 2, 6, 2),
+                Margin = PanelStyles.ST(0, 0, 2, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            // Single row: left block + flexible spacer + spread capsule pinned to right edge.
             var checkboxRow = new Grid(1, 3)
             {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = PanelStyles.ST(0, 2, 0, 2)
+                Width = PanelStyles.ContentWidth,
+                Margin = PanelStyles.ST(0, 2, 0, 2),
+                VerticalAlignment = VerticalAlignment.Center
             };
             checkboxRow.Rows[0].SetHeightToAuto();
             checkboxRow.Columns[0].SetWidthToAuto();
-            checkboxRow.Columns[1].SetWidthToAuto(); // separator: Border sets its own Width=1px
-            checkboxRow.Columns[2].SetWidthInStars(1);
+            checkboxRow.Columns[1].SetWidthInStars(1);
+            checkboxRow.Columns[2].SetWidthToAuto();
             checkboxRow.AddChild(leftStack, 0, 0);
-            checkboxRow.AddChild(separator, 0, 1);
-            checkboxRow.AddChild(spreadStack, 0, 2);
+            checkboxRow.AddChild(spreadBorder, 0, 2);
 
             // ===== Кнопки режимов =====
             // Grid(1,2) со Star-колонками — гарантирует симметричный отступ без фиксированных Width.
@@ -775,7 +820,7 @@ namespace COP_v1.UI
             var settingsTitle = new TextBlock
             {
                 Text = Localization.Get("Settings"),
-                ForegroundColor = PanelStyles.TextMuted,
+                ForegroundColor = PanelStyles.ButtonActive,
                 FontSize = PanelStyles.FontSizeSmall,
                 FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -938,9 +983,17 @@ namespace COP_v1.UI
             settingsRowsStack.AddChild(transparencyRow);
             settingsRowsStack.AddChild(scaleRow);
 
+            var settingsAccentSeparator = new Border
+            {
+                BackgroundColor = PanelStyles.ButtonActive,
+                Height = Math.Max(1, PanelStyles.S(1)),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = PanelStyles.ST(0, 2, 0, 2)
+            };
+
             var settingsContent = new StackPanel { Orientation = Orientation.Vertical };
             settingsContent.AddChild(settingsHeaderRow);
-            settingsContent.AddChild(CreateSeparator());
+            settingsContent.AddChild(settingsAccentSeparator);
             settingsContent.AddChild(settingsRowsStack);
 
             // Без собственного фона: фон уже у _rootWrapper на всю высоту панели; второй слой panelBg давал бы двойное затемнение при прозрачности.

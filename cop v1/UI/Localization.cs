@@ -16,15 +16,15 @@ namespace COP_v1.UI
             // --- Панель: заголовок ---
             ["PanelTitle"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "[ ' ' ]   COP v1",
-                [Language.RU] = "[ ' ' ]   COP v1",
-                [Language.DE] = "[ ' ' ]   COP v1",
-                [Language.FR] = "[ ' ' ]   COP v1",
-                [Language.ES] = "[ ' ' ]   COP v1",
-                [Language.IT] = "[ ' ' ]   COP v1",
-                [Language.PL] = "[ ' ' ]   COP v1",
-                [Language.NL] = "[ ' ' ]   COP v1",
-                [Language.PT] = "[ ' ' ]   COP v1"
+                [Language.EN] = "COP v1",
+                [Language.RU] = "COP v1",
+                [Language.DE] = "COP v1",
+                [Language.FR] = "COP v1",
+                [Language.ES] = "COP v1",
+                [Language.IT] = "COP v1",
+                [Language.PL] = "COP v1",
+                [Language.NL] = "COP v1",
+                [Language.PT] = "COP v1"
             },
             ["MiniPanelTitle"] = new Dictionary<Language, string>
             {
@@ -65,15 +65,15 @@ namespace COP_v1.UI
             // --- Подпись рядом с тумблером Fast Order (короткая, чтобы освободить место под OFF/ON) ---
             ["FastOrder"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "fast",
-                [Language.RU] = "быстро",
-                [Language.DE] = "Schnell",
-                [Language.FR] = "rapide",
-                [Language.ES] = "rápido",
-                [Language.IT] = "veloce",
-                [Language.PL] = "szybko",
-                [Language.NL] = "snel",
-                [Language.PT] = "rápido"
+                [Language.EN] = "— fast",
+                [Language.RU] = "— быстро",
+                [Language.DE] = "— Schnell",
+                [Language.FR] = "— rapide",
+                [Language.ES] = "— rápido",
+                [Language.IT] = "— veloce",
+                [Language.PL] = "— szybko",
+                [Language.NL] = "— snel",
+                [Language.PT] = "— rápido"
             },
             ["FastOrderOff"] = new Dictionary<Language, string>
             {
