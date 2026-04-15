@@ -364,7 +364,7 @@ namespace COP_v1.UI
                 BorderThickness = PanelStyles.ST(0, 0, 1, 1),
                 CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
                 Margin = PanelStyles.ST(2),
-                Padding = PanelStyles.ST(0, 0, 2, 2),
+                Padding = PanelStyles.ST(0, 0, 1, 1),
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
 
@@ -385,7 +385,7 @@ namespace COP_v1.UI
                 BorderThickness = PanelStyles.ST(0, 0, 1, 1),
                 CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
                 Margin = PanelStyles.ST(2),
-                Padding = PanelStyles.ST(0, 0, 2, 2),
+                Padding = PanelStyles.ST(0, 0, 1, 1),
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
 
@@ -578,7 +578,7 @@ namespace COP_v1.UI
                 BorderThickness = PanelStyles.ST(0, 0, 1, 1),
                 CornerRadius = new CornerRadius(PanelStyles.FastToggleOuterRadius),
                 Margin = PanelStyles.ST(2, 4, 2, 6),
-                Padding = PanelStyles.ST(0, 0, 2, 2),
+                Padding = PanelStyles.ST(0, 0, 1, 1),
                 Width = PanelStyles.ContentWidth - PanelStyles.S(4)
             };
 
