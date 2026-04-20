@@ -845,15 +845,19 @@ namespace COP_v1.UI
                 FontSize = PanelStyles.FontSizeSmall,
                 FontWeight = FontWeight.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = PanelStyles.ST(4, 6, 4, 6)
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextAlignment = TextAlignment.Center,
+                Margin = PanelStyles.ST(0, 3, 0, 3)
             };
-            var settingsHeaderRow = new StackPanel
+            var settingsHeaderRow = new Grid(1, 1)
             {
-                Orientation = Orientation.Horizontal,
                 BackgroundColor = PanelStyles.HeaderBarColor,
-                HorizontalAlignment = HorizontalAlignment.Stretch
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Width = PanelStyles.PanelClientWidth
             };
-            settingsHeaderRow.AddChild(settingsTitle);
+            settingsHeaderRow.Rows[0].SetHeightToAuto();
+            settingsHeaderRow.Columns[0].SetWidthInStars(1);
+            settingsHeaderRow.AddChild(settingsTitle, 0, 0);
 
             _settingsTradeTabButton = new Button
             {
