@@ -83,6 +83,8 @@ namespace COP_v1.Chart
         {
             _tpCount = tpCount < 1 ? 1 : (tpCount > 3 ? 3 : tpCount);
             Cancel(); // на всякий случай очистить предыдущий
+            _lineManager.RemoveAllLines();
+            _lineManager.ClearCachedLevelPrices();
 
             _isMarketMode = false;
             _step = 1;
@@ -112,6 +114,8 @@ namespace COP_v1.Chart
         {
             _tpCount = tpCount < 1 ? 1 : (tpCount > 3 ? 3 : tpCount);
             Cancel();
+            _lineManager.RemoveAllLines();
+            _lineManager.ClearCachedLevelPrices();
 
             _isMarketMode = true;
             _entryPrice = _bot.Symbol.Bid;
@@ -149,6 +153,7 @@ namespace COP_v1.Chart
             _bot.Chart.MouseDown -= OnMouseDown;
 
             _lineManager.RemoveAllLines();
+            _lineManager.ClearCachedLevelPrices();
             _step = 0;
 
             _bot.Print("FastOrder: Cancelled");

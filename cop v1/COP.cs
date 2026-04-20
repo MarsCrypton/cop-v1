@@ -337,8 +337,15 @@ namespace COP_v1
             if (tpN >= 2 && tpPricesMulti != null && volsMulti != null && _lastDirection != OrderDirection.Invalid)
             {
                 string[] tpTextIds = { ChartLineManager.Tp1TextId, ChartLineManager.Tp2TextId, ChartLineManager.Tp3TextId };
+                string[] tpLineIds = { ChartLineManager.Tp1LineId, ChartLineManager.Tp2LineId, ChartLineManager.Tp3LineId };
                 for (int i = 0; i < tpN; i++)
                 {
+                    if (_fastOrderHandler.IsActive && Chart.FindObject(tpLineIds[i]) is not ChartHorizontalLine)
+                    {
+                        Chart.RemoveObject(tpTextIds[i]);
+                        continue;
+                    }
+
                     double volI = volsMulti.Length == 1
                         ? (i == tpN - 1 ? volsMulti[0] : 0)
                         : (i < volsMulti.Length ? volsMulti[i] : 0);
@@ -353,12 +360,17 @@ namespace COP_v1
             }
             else
             {
-                _chartLineManager.UpdateLineTextPosition(
-                    _chartLineManager.MainTpTextId,
-                    tpPrice,
-                    Localization.Get("TpText",
-                        rr.ToString("F1"),
-                        ChartLineManager.FormatChartMoneyDollar(tpDollars)));
+                if (_fastOrderHandler.IsActive && Chart.FindObject(_chartLineManager.MainTpLineId) is not ChartHorizontalLine)
+                    Chart.RemoveObject(_chartLineManager.MainTpTextId);
+                else
+                {
+                    _chartLineManager.UpdateLineTextPosition(
+                        _chartLineManager.MainTpTextId,
+                        tpPrice,
+                        Localization.Get("TpText",
+                            rr.ToString("F1"),
+                            ChartLineManager.FormatChartMoneyDollar(tpDollars)));
+                }
             }
         }
 

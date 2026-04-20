@@ -309,6 +309,19 @@ namespace COP_v1.Chart
         }
 
         /// <summary>
+        /// Обнулить кэш цен уровней (линии на графике не трогает). После <see cref="RemoveAllLines"/> в Fast Order
+        /// убирает устаревшие fallback-значения для <see cref="GetPrice"/>.
+        /// </summary>
+        public void ClearCachedLevelPrices()
+        {
+            _entryPrice = 0;
+            _slPrice = 0;
+            _tp1Price = 0;
+            _tp2Price = 0;
+            _tp3Price = 0;
+        }
+
+        /// <summary>
         /// Удалить все виртуальные линии и тексты с графика.
         /// </summary>
         public void RemoveAllLines()
