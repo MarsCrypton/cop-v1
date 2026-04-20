@@ -54,6 +54,22 @@
 
 ---
 
+## Поток обновлений (Linear -> docs)
+
+Система внедрения обновлений проходит 3 этапа (по аналогии с Linear):
+
+| Этап | Статус в Linear | Папка |
+|------|------------------|-------|
+| 1 | Backlog / Todo | `docs/updates/future-updates` |
+| 2 | In Progress | `docs/updates/in-development` |
+| 3 | Done | `docs/updates/archive` |
+
+Правило: при переводе задачи между статусами переносим/обновляем соответствующий документ в нужной папке.
+
+Подробное описание потока: [docs/updates/README.md](docs/updates/README.md).
+
+---
+
 ## Где править код
 
 Ветка **v2**. Панель: `MainPanel.cs` (`headerStack`, `_contentStack`), настройки — блок под основной панелью. Свёрнутость панели: `s_savedCollapsedState`. Линии/подписи на графике: `ChartLineManager`, быстрый ордер: `FastOrderHandler`.

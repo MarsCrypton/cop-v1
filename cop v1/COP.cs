@@ -130,6 +130,7 @@ namespace COP_v1
 
             _mainPanel = new MainPanel(this, VPosition, HPosition, MaxRiskPercent, FastOrderMode == YesNo.Yes, panelTransparency);
             Chart.AddControl(_mainPanel.RootControl);
+            _mainPanel.RestoreActiveSettingsTab(LoadSavedSettingsTabForContext());
 
             ApplyInitialRiskToPanel();
 
@@ -547,6 +548,8 @@ namespace COP_v1
 
         private const string ScaleStorageKey = "COP PanelScalePercent";
 
+        private const string SettingsTabStorageKeyPrefix = "COP SettingsTab";
+
         /// <summary>
         /// Загрузить сохранённый масштаб панели (80–150 %). Если нет или невалидно — <c>-1</c>.
         /// </summary>
@@ -570,6 +573,35 @@ namespace COP_v1
             {
                 int clamped = Math.Max(80, Math.Min(percent, 150));
                 LocalStorage.SetString(ScaleStorageKey, clamped.ToString(CultureInfo.InvariantCulture), LocalStorageScope.Device);
+                LocalStorage.Flush(LocalStorageScope.Device);
+            }
+            catch { }
+        }
+
+        private string BuildSettingsTabStorageKey()
+        {
+            string symbol = Symbol?.Name ?? "unknown-symbol";
+            string account = Account?.Number.ToString(CultureInfo.InvariantCulture) ?? "unknown-account";
+            return SettingsTabStorageKeyPrefix + " " + account + " " + symbol;
+        }
+
+        private SettingsTab LoadSavedSettingsTabForContext()
+        {
+            try
+            {
+                string saved = LocalStorage.GetString(BuildSettingsTabStorageKey(), LocalStorageScope.Device);
+                if (!string.IsNullOrWhiteSpace(saved) && Enum.TryParse(saved.Trim(), true, out SettingsTab tab))
+                    return tab;
+            }
+            catch { }
+            return SettingsTab.Trade;
+        }
+
+        private void SaveSettingsTabForContext(SettingsTab tab)
+        {
+            try
+            {
+                LocalStorage.SetString(BuildSettingsTabStorageKey(), tab.ToString(), LocalStorageScope.Device);
                 LocalStorage.Flush(LocalStorageScope.Device);
             }
             catch { }
@@ -1319,6 +1351,7 @@ namespace COP_v1
         {
             public int TransparencyPercent;
             public bool SettingsOpen;
+            public SettingsTab ActiveSettingsTab;
             public string RiskText;
             public bool FastOrder;
             public int TpCount;
@@ -1341,6 +1374,7 @@ namespace COP_v1
             _mainPanel.OnTransparencyChanged += SaveTransparency;
             _mainPanel.OnTpAllocationSettingsChanged += HandleTpAllocationSettingsChanged;
             _mainPanel.OnScaleChanged += HandlePanelScaleChanged;
+            _mainPanel.OnSettingsTabChanged += SaveSettingsTabForContext;
         }
 
         private void UnsubscribePanelEvents()
@@ -1359,6 +1393,7 @@ namespace COP_v1
             _mainPanel.OnTransparencyChanged -= SaveTransparency;
             _mainPanel.OnTpAllocationSettingsChanged -= HandleTpAllocationSettingsChanged;
             _mainPanel.OnScaleChanged -= HandlePanelScaleChanged;
+            _mainPanel.OnSettingsTabChanged -= SaveSettingsTabForContext;
         }
 
         private PanelUiSnapshot CapturePanelUiSnapshot()
@@ -1367,6 +1402,7 @@ namespace COP_v1
             {
                 TransparencyPercent = _mainPanel.CurrentTransparencyPercent,
                 SettingsOpen = _mainPanel.IsSettingsPanelVisible,
+                ActiveSettingsTab = _mainPanel.ActiveSettingsTab,
                 RiskText = _mainPanel.RiskText,
                 FastOrder = _mainPanel.IsFastOrder,
                 TpCount = _mainPanel.TpCount,
@@ -1379,6 +1415,7 @@ namespace COP_v1
         private void RestoreMainPanelUi(PanelUiSnapshot s)
         {
             _mainPanel.RestoreSettingsPanelOpenState(s.SettingsOpen);
+            _mainPanel.RestoreActiveSettingsTab(s.ActiveSettingsTab);
             _mainPanel.RestoreTpComboSettings(s.TpCount, s.TpVolumeMode);
             _mainPanel.SetRiskMode(_currentRiskMode);
             if (!string.IsNullOrWhiteSpace(s.RiskText))

@@ -11,6 +11,14 @@ namespace COP_v1.UI
         EqualProfit
     }
 
+    /// <summary>Вкладки в секции настроек панели.</summary>
+    public enum SettingsTab
+    {
+        Trade = 0,
+        Panel = 1,
+        More = 2
+    }
+
     /// <summary>
     /// Главная UI-панель бота COP v1.
     /// Содержит все контролы: Fast Order, кнопки режимов, поля ввода, кнопку подтверждения.
@@ -39,12 +47,25 @@ namespace COP_v1.UI
         private readonly ComboBox _tpVolumeModeCombo;
         private readonly ComboBox _transparencyCombo;
         private readonly ComboBox _scaleCombo;
+        private readonly Button _settingsTradeTabButton;
+        private readonly Button _settingsPanelTabButton;
+        private readonly Button _settingsMoreTabButton;
+        private readonly Border _settingsTradeTabUnderline;
+        private readonly Border _settingsPanelTabUnderline;
+        private readonly Border _settingsMoreTabUnderline;
+        private readonly StackPanel _settingsTradeTabContent;
+        private readonly StackPanel _settingsPanelTabContent;
+        private readonly StackPanel _settingsMoreTabContent;
+        private SettingsTab _activeSettingsTab = SettingsTab.Trade;
 
         /// <summary>Вызывается при изменении прозрачности фона панели из настроек. Аргумент: новый процент (0–80).</summary>
         public event Action<int> OnTransparencyChanged;
 
         /// <summary>Вызывается при выборе масштаба панели в настройках (80–150 %).</summary>
         public event Action<int> OnScaleChanged;
+
+        /// <summary>Смена активной вкладки в блоке Settings.</summary>
+        public event Action<SettingsTab> OnSettingsTabChanged;
 
         /// <summary>Текущий процент прозрачности фона панелей (0–80).</summary>
         private int _panelTransparencyPercent;
@@ -834,6 +855,84 @@ namespace COP_v1.UI
             };
             settingsHeaderRow.AddChild(settingsTitle);
 
+            _settingsTradeTabButton = new Button
+            {
+                Text = Localization.Get("SettingsTabTrade"),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Height = PanelStyles.S(20),
+                Margin = PanelStyles.ST(0),
+                Style = CreateSettingsTabButtonStyle(false),
+                FontSize = PanelStyles.FontSizeSmall,
+                FontWeight = FontWeight.Normal
+            };
+            _settingsTradeTabButton.Click += SettingsTradeTabButton_Click;
+
+            _settingsPanelTabButton = new Button
+            {
+                Text = Localization.Get("SettingsTabPanel"),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Height = PanelStyles.S(20),
+                Margin = PanelStyles.ST(0),
+                Style = CreateSettingsTabButtonStyle(false),
+                FontSize = PanelStyles.FontSizeSmall,
+                FontWeight = FontWeight.Normal
+            };
+            _settingsPanelTabButton.Click += SettingsPanelTabButton_Click;
+
+            _settingsMoreTabButton = new Button
+            {
+                Text = Localization.Get("SettingsTabMore"),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Height = PanelStyles.S(20),
+                Margin = PanelStyles.ST(0),
+                Style = CreateSettingsTabButtonStyle(false),
+                FontSize = PanelStyles.FontSizeSmall,
+                FontWeight = FontWeight.Normal
+            };
+            _settingsMoreTabButton.Click += SettingsMoreTabButton_Click;
+
+            var settingsTabsGrid = new Grid(1, 3)
+            {
+                Width = PanelStyles.ContentWidth,
+                Margin = PanelStyles.ST(0, 4, 0, 0)
+            };
+            settingsTabsGrid.Rows[0].SetHeightToAuto();
+            settingsTabsGrid.Columns[0].SetWidthInStars(1);
+            settingsTabsGrid.Columns[1].SetWidthInStars(1);
+            settingsTabsGrid.Columns[2].SetWidthInStars(1);
+            settingsTabsGrid.AddChild(_settingsTradeTabButton, 0, 0);
+            settingsTabsGrid.AddChild(_settingsPanelTabButton, 0, 1);
+            settingsTabsGrid.AddChild(_settingsMoreTabButton, 0, 2);
+
+            _settingsTradeTabUnderline = new Border
+            {
+                Height = Math.Max(1, PanelStyles.S(1)),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            _settingsPanelTabUnderline = new Border
+            {
+                Height = Math.Max(1, PanelStyles.S(1)),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            _settingsMoreTabUnderline = new Border
+            {
+                Height = Math.Max(1, PanelStyles.S(1)),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+
+            var settingsTabsUnderlineGrid = new Grid(1, 3)
+            {
+                Width = PanelStyles.ContentWidth,
+                Margin = PanelStyles.ST(0, 0, 0, 2)
+            };
+            settingsTabsUnderlineGrid.Rows[0].SetHeightToAuto();
+            settingsTabsUnderlineGrid.Columns[0].SetWidthInStars(1);
+            settingsTabsUnderlineGrid.Columns[1].SetWidthInStars(1);
+            settingsTabsUnderlineGrid.Columns[2].SetWidthInStars(1);
+            settingsTabsUnderlineGrid.AddChild(_settingsTradeTabUnderline, 0, 0);
+            settingsTabsUnderlineGrid.AddChild(_settingsPanelTabUnderline, 0, 1);
+            settingsTabsUnderlineGrid.AddChild(_settingsMoreTabUnderline, 0, 2);
+
             // --- Количество тейков (1, 2 или 3) ---
             var tpCountLabel = new TextBlock
             {
@@ -973,15 +1072,45 @@ namespace COP_v1.UI
             scaleRow.AddChild(scaleLabel, 0, 0);
             scaleRow.AddChild(_scaleCombo, 0, 1);
 
+            _settingsTradeTabContent = new StackPanel
+            {
+                Orientation = Orientation.Vertical
+            };
+            _settingsTradeTabContent.AddChild(tpCountRow);
+            _settingsTradeTabContent.AddChild(tpVolumeModeRow);
+
+            _settingsPanelTabContent = new StackPanel
+            {
+                Orientation = Orientation.Vertical
+            };
+            _settingsPanelTabContent.AddChild(transparencyRow);
+            _settingsPanelTabContent.AddChild(scaleRow);
+
+            var settingsMorePlaceholder = new TextBlock
+            {
+                Text = Localization.Get("SettingsTabMorePlaceholder"),
+                ForegroundColor = PanelStyles.TextMuted,
+                FontSize = PanelStyles.FontSizeSmall,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = PanelStyles.ST(2, 4, 2, 4),
+                TextWrapping = TextWrapping.Wrap
+            };
+            _settingsMoreTabContent = new StackPanel
+            {
+                Orientation = Orientation.Vertical
+            };
+            _settingsMoreTabContent.AddChild(settingsMorePlaceholder);
+
             var settingsRowsStack = new StackPanel
             {
                 Orientation = Orientation.Vertical,
                 Margin = PanelStyles.SettingsStackHorizontalMargin
             };
-            settingsRowsStack.AddChild(tpCountRow);
-            settingsRowsStack.AddChild(tpVolumeModeRow);
-            settingsRowsStack.AddChild(transparencyRow);
-            settingsRowsStack.AddChild(scaleRow);
+            settingsRowsStack.AddChild(settingsTabsGrid);
+            settingsRowsStack.AddChild(settingsTabsUnderlineGrid);
+            settingsRowsStack.AddChild(_settingsTradeTabContent);
+            settingsRowsStack.AddChild(_settingsPanelTabContent);
+            settingsRowsStack.AddChild(_settingsMoreTabContent);
 
             var settingsAccentSeparator = new Border
             {
@@ -1007,6 +1136,7 @@ namespace COP_v1.UI
                 IsVisible = false
             };
             _settingsPanelVisible = false;
+            ApplySettingsTab(SettingsTab.Trade, notify: false);
 
             // ===== Корневой контейнер: основная панель + панель настроек =====
             _rootContainer = new StackPanel
@@ -1071,6 +1201,9 @@ namespace COP_v1.UI
         /// <summary>Видна ли секция настроек (+ Set / блок TP / прозрачность / масштаб).</summary>
         public bool IsSettingsPanelVisible => _settingsPanelVisible;
 
+        /// <summary>Активная вкладка в блоке настроек.</summary>
+        public SettingsTab ActiveSettingsTab => _activeSettingsTab;
+
         /// <summary>Свёрнута ли основная панель (мини-режим).</summary>
         public bool CollapsedState => _isCollapsed;
 
@@ -1098,6 +1231,14 @@ namespace COP_v1.UI
             int idx = tpCount <= 1 ? 0 : (tpCount == 2 ? 1 : 2);
             _tpCountCombo.SelectedIndex = Math.Max(0, Math.Min(2, idx));
             _tpVolumeModeCombo.SelectedIndex = mode == TpVolumeMode.EqualVolume ? 0 : 1;
+            _isUpdatingFromCode = false;
+        }
+
+        /// <summary>Восстановить активную вкладку настроек без генерации внешних событий.</summary>
+        public void RestoreActiveSettingsTab(SettingsTab tab)
+        {
+            _isUpdatingFromCode = true;
+            ApplySettingsTab(tab, notify: false);
             _isUpdatingFromCode = false;
         }
 
@@ -1427,6 +1568,12 @@ namespace COP_v1.UI
             UpdateSettingsButtonLabel();
         }
 
+        private void SettingsTradeTabButton_Click(ButtonClickEventArgs args) => ApplySettingsTab(SettingsTab.Trade);
+
+        private void SettingsPanelTabButton_Click(ButtonClickEventArgs args) => ApplySettingsTab(SettingsTab.Panel);
+
+        private void SettingsMoreTabButton_Click(ButtonClickEventArgs args) => ApplySettingsTab(SettingsTab.More);
+
         private void TransparencyCombo_SelectedItemChanged(ComboBoxSelectedItemChangedEventArgs args)
         {
             int idx = _transparencyCombo.SelectedIndex;
@@ -1451,6 +1598,46 @@ namespace COP_v1.UI
             _panelTransparencyPercent = Math.Max(0, Math.Min(percent, 80));
             Color panelBg = PanelStyles.GetPanelBackgroundWithTransparency(_panelTransparencyPercent);
             _rootWrapper.BackgroundColor = panelBg;
+        }
+
+        private Style CreateSettingsTabButtonStyle(bool isActive)
+        {
+            var style = new Style();
+            Color transparent = Color.FromArgb(0, PanelStyles.PanelBackground);
+            style.Set(ControlProperty.BackgroundColor, transparent);
+            style.Set(ControlProperty.BackgroundColor, transparent, ControlState.Hover);
+            style.Set(ControlProperty.ForegroundColor, isActive ? PanelStyles.TextColor : PanelStyles.TextMuted);
+            style.Set(ControlProperty.ForegroundColor, PanelStyles.TextColor, ControlState.Hover);
+            return style;
+        }
+
+        private void ApplySettingsTab(SettingsTab tab, bool notify = true)
+        {
+            _activeSettingsTab = tab;
+
+            _settingsTradeTabContent.IsVisible = tab == SettingsTab.Trade;
+            _settingsPanelTabContent.IsVisible = tab == SettingsTab.Panel;
+            _settingsMoreTabContent.IsVisible = tab == SettingsTab.More;
+
+            UpdateSettingsTabsVisual();
+
+            if (notify && !_isUpdatingFromCode)
+                OnSettingsTabChanged?.Invoke(_activeSettingsTab);
+        }
+
+        private void UpdateSettingsTabsVisual()
+        {
+            bool isTrade = _activeSettingsTab == SettingsTab.Trade;
+            bool isPanel = _activeSettingsTab == SettingsTab.Panel;
+            bool isMore = _activeSettingsTab == SettingsTab.More;
+
+            _settingsTradeTabButton.Style = CreateSettingsTabButtonStyle(isTrade);
+            _settingsPanelTabButton.Style = CreateSettingsTabButtonStyle(isPanel);
+            _settingsMoreTabButton.Style = CreateSettingsTabButtonStyle(isMore);
+
+            _settingsTradeTabUnderline.BackgroundColor = isTrade ? PanelStyles.ButtonActive : PanelStyles.SeparatorLineColor;
+            _settingsPanelTabUnderline.BackgroundColor = isPanel ? PanelStyles.ButtonActive : PanelStyles.SeparatorLineColor;
+            _settingsMoreTabUnderline.BackgroundColor = isMore ? PanelStyles.ButtonActive : PanelStyles.SeparatorLineColor;
         }
 
         // Summary-текст настроек TP удалён (раньше отображался справа от риска).

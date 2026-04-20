@@ -382,6 +382,54 @@ namespace COP_v1.UI
                 [Language.NL] = "Overige instellingen hier",
                 [Language.PT] = "Outras definições aqui"
             },
+            ["SettingsTabTrade"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Trade",
+                [Language.RU] = "Торговля",
+                [Language.DE] = "Handel",
+                [Language.FR] = "Trade",
+                [Language.ES] = "Trade",
+                [Language.IT] = "Trade",
+                [Language.PL] = "Trade",
+                [Language.NL] = "Trade",
+                [Language.PT] = "Trade"
+            },
+            ["SettingsTabPanel"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Panel",
+                [Language.RU] = "Панель",
+                [Language.DE] = "Panel",
+                [Language.FR] = "Panel",
+                [Language.ES] = "Panel",
+                [Language.IT] = "Panel",
+                [Language.PL] = "Panel",
+                [Language.NL] = "Panel",
+                [Language.PT] = "Panel"
+            },
+            ["SettingsTabMore"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "More",
+                [Language.RU] = "Еще",
+                [Language.DE] = "Mehr",
+                [Language.FR] = "Plus",
+                [Language.ES] = "Mas",
+                [Language.IT] = "Altro",
+                [Language.PL] = "Wiecej",
+                [Language.NL] = "Meer",
+                [Language.PT] = "Mais"
+            },
+            ["SettingsTabMorePlaceholder"] = new Dictionary<Language, string>
+            {
+                [Language.EN] = "Future settings will be added here",
+                [Language.RU] = "Здесь появятся будущие настройки",
+                [Language.DE] = "Zukuenftige Einstellungen kommen hierhin",
+                [Language.FR] = "Les futurs reglages seront ici",
+                [Language.ES] = "Aqui apareceran ajustes futuros",
+                [Language.IT] = "Qui compariranno impostazioni future",
+                [Language.PL] = "Tu pojawia sie przyszle ustawienia",
+                [Language.NL] = "Hier komen toekomstige instellingen",
+                [Language.PT] = "As futuras definicoes aparecerao aqui"
+            },
 
             // --- Multi-TP настройки ---
             ["TpCountLabel"] = new Dictionary<Language, string>
