@@ -334,27 +334,27 @@ namespace COP_v1.UI
             },
             ["LimitText"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "LIMIT {0} lot",
-                [Language.RU] = "LIMIT {0} лот",
-                [Language.DE] = "LIMIT {0} Lot",
-                [Language.FR] = "LIMIT {0} lot",
-                [Language.ES] = "LIMIT {0} lote",
-                [Language.IT] = "LIMIT {0} lotto",
-                [Language.PL] = "LIMIT {0} lot",
-                [Language.NL] = "LIMIT {0} lot",
-                [Language.PT] = "LIMIT {0} lote"
+                [Language.EN] = "LM {0} lot",
+                [Language.RU] = "LM {0} лот",
+                [Language.DE] = "LM {0} Lot",
+                [Language.FR] = "LM {0} lot",
+                [Language.ES] = "LM {0} lote",
+                [Language.IT] = "LM {0} lotto",
+                [Language.PL] = "LM {0} lot",
+                [Language.NL] = "LM {0} lot",
+                [Language.PT] = "LM {0} lote"
             },
             ["MarketText"] = new Dictionary<Language, string>
             {
-                [Language.EN] = "MKT {0} lot",
-                [Language.RU] = "МКТ {0} лот",
-                [Language.DE] = "MKT {0} Lot",
-                [Language.FR] = "MKT {0} lot",
-                [Language.ES] = "MKT {0} lote",
-                [Language.IT] = "MKT {0} lot",
-                [Language.PL] = "MKT {0} lot",
-                [Language.NL] = "MKT {0} lot",
-                [Language.PT] = "MKT {0} lote"
+                [Language.EN] = "MK {0} lot",
+                [Language.RU] = "MK {0} лот",
+                [Language.DE] = "MK {0} Lot",
+                [Language.FR] = "MK {0} lot",
+                [Language.ES] = "MK {0} lote",
+                [Language.IT] = "MK {0} lot",
+                [Language.PL] = "MK {0} lot",
+                [Language.NL] = "MK {0} lot",
+                [Language.PT] = "MK {0} lote"
             },
 
             // --- Панель настроек ---

@@ -300,6 +300,12 @@ namespace COP_v1.UI
         public const int LineThickness = 1;
 
         /// <summary>
+        /// Смещение якоря подписей к линиям вправо по времени: баров от последней видимой свечи
+        /// (больше — дальше от свечей, ближе к шкале цен).
+        /// </summary>
+        public const int ChartLineLabelRightOffsetBars = 9;
+
+        /// <summary>
         /// ZIndex горизонтальных линий Entry/SL/TP: выше типичных пользовательских фигур на графике,
         /// чтобы линию было проще схватить для перетаскивания (см. <c>ChartObject.ZIndex</c> в cAlgo).
         /// </summary>

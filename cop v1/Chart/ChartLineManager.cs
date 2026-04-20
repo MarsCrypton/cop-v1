@@ -61,17 +61,53 @@ namespace COP_v1.Chart
         }
 
         /// <summary>
-        /// Время по оси X для подписей: последний видимый бар (ближе к правому краю), иначе последний бар серии.
+        /// Шаг времени между соседними барами (по фактическим OpenTimes) — для смещения подписи вправо
+        /// даже когда индекс «видимый + N» выходит за <c>Bars.Count</c> (иначе якорь залипает на последней свече).
+        /// </summary>
+        private static TimeSpan GetBarsOpenTimeStep(Robot bot)
+        {
+            try
+            {
+                int n = bot.Bars.Count;
+                if (n >= 2)
+                {
+                    TimeSpan d = bot.Bars.OpenTimes[n - 1] - bot.Bars.OpenTimes[n - 2];
+                    if (d > TimeSpan.Zero)
+                        return d;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return TimeSpan.FromMinutes(1);
+        }
+
+        /// <summary>
+        /// Время по оси X для подписей: открытие последней видимой свечи плюс
+        /// <see cref="PanelStyles.ChartLineLabelRightOffsetBars"/> шагов времени вправо (не только по индексу бара).
         /// </summary>
         public static DateTime GetLabelAnchorTime(Robot bot)
         {
             try
             {
+                int maxBar = bot.Bars.Count - 1;
+                if (maxBar < 0)
+                    return bot.Server.Time;
+
                 int vis = bot.Chart.LastVisibleBarIndex;
-                if (vis >= 0 && vis < bot.Bars.Count)
-                    return bot.Bars.OpenTimes[vis];
-                if (bot.Bars.Count > 0)
-                    return bot.Bars.OpenTimes[bot.Bars.Count - 1];
+                if (vis < 0)
+                    vis = 0;
+                if (vis > maxBar)
+                    vis = maxBar;
+
+                DateTime baseOpen = bot.Bars.OpenTimes[vis];
+                TimeSpan step = GetBarsOpenTimeStep(bot);
+                long ticks = step.Ticks * (long)PanelStyles.ChartLineLabelRightOffsetBars;
+                if (ticks <= 0)
+                    return baseOpen;
+                return baseOpen.AddTicks(ticks);
             }
             catch
             {
